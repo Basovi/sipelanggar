@@ -770,6 +770,7 @@ function buildNav(){
     items.push({id:"sekolah", icon:"apartment", label:"Data Sekolah"});
     items.push({id:"semester", icon:"event_repeat", label:"Tahun & Semester"});
     items.push({id:"cetak", icon:"print", label:"Pengaturan Cetak"});
+    items.push({id:"backup", icon:"cloud_download", label:"Backup Data"});
     items.push({id:"log", icon:"receipt_long", label:"Log Aktivitas"});
   }
   items.push({group:"Akun"});
@@ -839,6 +840,7 @@ const PAGE_META = {
   sekolah:{title:"Data Sekolah", sub:"Identitas & pengaturan sekolah"},
   semester:{title:"Tahun & Semester", sub:"Kelola tahun pelajaran dan semester aktif"},
   cetak:{title:"Pengaturan Cetak", sub:"Kop surat, tanda tangan, dan format PDF"},
+  backup:{title:"Backup Data", sub:"Unduh seluruh data sistem ke Excel"},
   log:{title:"Log Aktivitas", sub:"Riwayat aktivitas seluruh pengguna sistem"},
   profil:{title:"Profil Saya", sub:"Kelola informasi akun anda"},
 };
@@ -848,7 +850,7 @@ function navigateTo(page){
   document.querySelectorAll(".nav-item[data-page]").forEach(b=> b.classList.toggle("active", b.dataset.page===page));
   document.getElementById("pageTitle").textContent = PAGE_META[page].title;
   document.getElementById("pageSub").textContent = PAGE_META[page].sub;
-  const map = { dashboard: renderDashboard, siswa: renderSiswa, jenis: renderJenis, guru: renderGuru, input: renderInput, riwayat: renderRiwayat, laporan: renderLaporan, sekolah: renderSekolah, semester: renderSemester, cetak: renderCetak, log: renderLog, profil: renderProfil };
+  const map = { dashboard: renderDashboard, siswa: renderSiswa, jenis: renderJenis, guru: renderGuru, input: renderInput, riwayat: renderRiwayat, laporan: renderLaporan, sekolah: renderSekolah, semester: renderSemester, cetak: renderCetak, backup: renderBackup, log: renderLog, profil: renderProfil };
   (map[page] || renderDashboard)();
   document.getElementById("sidebar").classList.remove("open");
 }
@@ -1814,6 +1816,114 @@ function renderCetak(){
     ];
     printStudentReport(dummySiswa, dummyRiwayat, 5);
   });
+}
+
+/* =========================================================
+   BACKUP DATA (Admin) - export seluruh database ke Excel
+========================================================= */
+function renderBackup(){
+  const totalPoin = CACHE.riwayat.reduce((a,r)=>a+(r.jenis_pelanggaran?.poin||0),0);
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel" style="max-width:640px">
+      <h3 style="margin-top:0">Backup Seluruh Data ke Excel</h3>
+      <p class="text-soft" style="font-size:13px;line-height:1.6">
+        Unduh salinan lengkap seluruh data sistem dalam satu file Excel (.xlsx), tersimpan dalam beberapa sheet terpisah:
+        Riwayat Pelanggaran, Data Siswa, Data Guru, Jenis Pelanggaran, dan Tahun/Semester.
+        Cocok untuk arsip rutin atau cadangan sebelum pergantian tahun ajaran.
+      </p>
+      <div class="grid-cards" style="grid-template-columns:repeat(3,1fr);margin-top:18px">
+        <div class="kpi-card"><div class="ico"><span class="msr">fact_check</span></div><div class="val">${CACHE.riwayat.length}</div><div class="lbl">Catatan Pelanggaran</div></div>
+        <div class="kpi-card"><div class="ico"><span class="msr">bolt</span></div><div class="val">${totalPoin}</div><div class="lbl">Total Poin Tercatat</div></div>
+        <div class="kpi-card"><div class="ico"><span class="msr">groups</span></div><div class="val">${CACHE.siswa.length}</div><div class="lbl">Total Siswa</div></div>
+      </div>
+      <button class="btn btn-primary" id="backupBtn" style="margin-top:20px"><span class="msr">cloud_download</span> Backup Sekarang (.xlsx)</button>
+      <p class="text-soft" style="font-size:11.5px;margin-top:10px">Tips: simpan file hasil backup ini di Google Drive/komputer sekolah secara berkala, terpisah dari database utama.</p>
+    </div>
+  `;
+  document.getElementById("backupBtn").addEventListener("click", backupAllDataExcel);
+}
+
+async function backupAllDataExcel(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const btn = document.getElementById("backupBtn");
+  const orig = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Menyiapkan backup...';
+  try{
+    // Ambil data terbaru langsung dari database supaya backup selalu up-to-date
+    await refreshAllData();
+
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1: Riwayat Pelanggaran (poin yang sudah terekam)
+    const riwayatRows = CACHE.riwayat.map(r=>({
+      "Tanggal": r.tanggal || "",
+      "NIS": r.siswa?.nis || "",
+      "Nama Siswa": r.siswa?.nama || "",
+      "Kelas": r.siswa?.kelas || "",
+      "Kode Pelanggaran": r.jenis_pelanggaran?.kode || "",
+      "Nama Pelanggaran": r.jenis_pelanggaran?.nama || "",
+      "Kategori": r.jenis_pelanggaran?.kategori || "",
+      "Poin": r.jenis_pelanggaran?.poin ?? 0,
+      "Guru Penginput": r.guru?.nama || "",
+      "Catatan": r.catatan || ""
+    }));
+    const wsRiwayat = XLSX.utils.json_to_sheet(riwayatRows);
+    wsRiwayat["!cols"] = [{wch:12},{wch:12},{wch:22},{wch:10},{wch:14},{wch:28},{wch:14},{wch:8},{wch:20},{wch:28}];
+    XLSX.utils.book_append_sheet(wb, wsRiwayat, "Riwayat Pelanggaran");
+
+    // Sheet 2: Data Siswa
+    const siswaRows = CACHE.siswa.map(s=>({
+      "NIS": s.nis||"", "NISN": s.nisn||"", "Nama": s.nama||"", "Kelas": s.kelas||"",
+      "L/P": s.jenis_kelamin||"", "Tempat Lahir": s.tempat_lahir||"", "Tanggal Lahir": s.tanggal_lahir||"",
+      "Alamat": s.alamat||"", "Nama Orang Tua": s.nama_ortu||"", "No. HP Orang Tua": s.hp_ortu||""
+    }));
+    const wsSiswa = XLSX.utils.json_to_sheet(siswaRows);
+    XLSX.utils.book_append_sheet(wb, wsSiswa, "Data Siswa");
+
+    // Sheet 3: Data Guru (tanpa password)
+    const guruRows = CACHE.guru.map(g=>({
+      "Nama": g.nama||"", "NIP": g.nip||"", "Username": g.username||"", "Jabatan": g.jabatan||"",
+      "Kelas Diampu": g.kelas_diampu||"", "Status": g.aktif!==false ? "Aktif" : "Nonaktif"
+    }));
+    const wsGuru = XLSX.utils.json_to_sheet(guruRows);
+    XLSX.utils.book_append_sheet(wb, wsGuru, "Data Guru");
+
+    // Sheet 4: Jenis Pelanggaran
+    const jenisRows = CACHE.jenis.map(j=>({
+      "Kode": j.kode||"", "Nama Pelanggaran": j.nama||"", "Kategori": j.kategori||"", "Poin": j.poin ?? 0, "Keterangan": j.keterangan||""
+    }));
+    const wsJenis = XLSX.utils.json_to_sheet(jenisRows);
+    XLSX.utils.book_append_sheet(wb, wsJenis, "Jenis Pelanggaran");
+
+    // Sheet 5: Tahun & Semester
+    const semesterRows = CACHE.semester.map(sm=>({
+      "Tahun Pelajaran": sm.tahun_pelajaran||"", "Semester": sm.semester||"", "Status": sm.aktif ? "Aktif" : "Nonaktif"
+    }));
+    const wsSemester = XLSX.utils.json_to_sheet(semesterRows);
+    XLSX.utils.book_append_sheet(wb, wsSemester, "Tahun & Semester");
+
+    // Sheet 6: Ringkasan backup
+    const totalPoin = CACHE.riwayat.reduce((a,r)=>a+(r.jenis_pelanggaran?.poin||0),0);
+    const wsInfo = XLSX.utils.json_to_sheet([{
+      "Nama Sekolah": CACHE.sekolah?.nama_sekolah || "-",
+      "Tanggal Backup": new Date().toLocaleString("id-ID"),
+      "Dibuat Oleh": CURRENT_USER?.nama || "-",
+      "Total Siswa": CACHE.siswa.length,
+      "Total Guru": CACHE.guru.length,
+      "Total Catatan Pelanggaran": CACHE.riwayat.length,
+      "Total Poin Tercatat": totalPoin
+    }]);
+    XLSX.utils.book_append_sheet(wb, wsInfo, "Info Backup");
+
+    const filename = `Backup_SiPelanggar_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    toast(`Backup berhasil diunduh: ${filename}`);
+    await logActivity("Melakukan backup seluruh data ke Excel");
+  }catch(err){
+    toast(err.message, "error", "Gagal Backup");
+  }finally{
+    btn.disabled = false; btn.innerHTML = orig;
+  }
 }
 
 /* =========================================================
