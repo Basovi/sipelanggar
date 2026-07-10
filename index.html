@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SiPelanggar | SMP Negeri 3 Way Pengubun</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue-900:#0b2a52;
+  --blue-700:#1554a3;
+  --blue-600:#1c66c4;
+  --blue-500:#2b7de9;
+  --blue-100:#e8f1fd;
+  --blue-50:#f4f8fe;
+  --ink:#101828;
+  --ink-soft:#475467;
+  --line:#e4e9f2;
+  --bg:#f5f7fb;
+  --surface:#ffffff;
+  --surface-2:#f8fafc;
+  --danger:#e0432b;
+  --success:#1a9e6b;
+  --warn:#c8890a;
+  --radius:16px;
+  --radius-sm:10px;
+  --shadow:0 1px 2px rgba(16,24,40,.04), 0 8px 24px -8px rgba(16,24,40,.10);
+  --shadow-lg:0 12px 40px -12px rgba(16,24,40,.22);
+}
+[data-theme="dark"]{
+  --ink:#eef2f9;
+  --ink-soft:#a9b6cc;
+  --line:#25324a;
+  --bg:#0b1424;
+  --surface:#101c30;
+  --surface-2:#0d1728;
+  --blue-100:#152a4a;
+  --blue-50:#0f2038;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  transition:background .25s ease,color .25s ease;
+}
+h1,h2,h3,.font-display{font-family:'Sora',sans-serif}
+.msr{font-family:'Material Symbols Rounded';font-weight:400;font-style:normal;font-size:20px;line-height:1;display:inline-block;vertical-align:middle;}
+button{font-family:inherit;cursor:pointer}
+a{color:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+
+/* ---------- Loading screen ---------- */
+#loadingScreen{
+  position:fixed;inset:0;background:linear-gradient(160deg,var(--blue-900),var(--blue-700));
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:9999;
+  color:#fff;transition:opacity .5s ease, visibility .5s ease;
+}
+#loadingScreen.hide{opacity:0;visibility:hidden;pointer-events:none}
+.spinner{width:46px;height:46px;border-radius:50%;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-label{font-family:'Sora',sans-serif;font-weight:700;letter-spacing:.03em;font-size:15px;opacity:.9}
+
+/* ---------- Toast ---------- */
+#toastHost{position:fixed;top:20px;right:20px;z-index:9998;display:flex;flex-direction:column;gap:10px;max-width:340px}
+.toast{
+  background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--blue-600);
+  padding:12px 16px;border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);
+  display:flex;gap:10px;align-items:flex-start;animation:toastIn .25s ease;font-size:13.5px;
+}
+.toast.success{border-left-color:var(--success)}
+.toast.error{border-left-color:var(--danger)}
+.toast.warn{border-left-color:var(--warn)}
+.toast .msr{margin-top:1px}
+.toast b{display:block;margin-bottom:2px}
+@keyframes toastIn{from{transform:translateX(24px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* ---------- Landing / Login ---------- */
+#landing{min-height:100vh;display:grid;grid-template-columns:1.15fr 1fr}
+.land-left{
+  background:
+    radial-gradient(1200px 500px at -10% -10%, rgba(255,255,255,.08), transparent),
+    linear-gradient(155deg,var(--blue-900) 0%, var(--blue-700) 55%, var(--blue-600) 100%);
+  color:#fff;padding:56px 60px;display:flex;flex-direction:column;gap:28px;position:relative;overflow:hidden;
+}
+.land-left::after{
+  content:"";position:absolute;right:-120px;bottom:-140px;width:420px;height:420px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.10), transparent 70%);
+}
+.brandline{display:flex;align-items:center;gap:14px}
+.brand-badge{
+  width:56px;height:56px;border-radius:16px;background:rgba(255,255,255,.14);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;font-family:'Sora';font-weight:800;font-size:20px;
+  border:1px solid rgba(255,255,255,.25);
+}
+.brand-name b{display:block;font-family:'Sora';font-size:15px;letter-spacing:.02em}
+.brand-name span{font-size:12px;opacity:.75}
+.land-hero h1{font-size:34px;line-height:1.15;margin:0 0 10px;font-weight:800}
+.land-hero p{font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.82);margin:0;max-width:480px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:6px;position:relative;z-index:1}
+.stat-card{
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:14px 14px;
+  backdrop-filter:blur(6px);
+}
+.stat-card .msr{color:rgba(255,255,255,.8);font-size:18px}
+.stat-card .val{font-family:'Sora';font-size:22px;font-weight:800;margin-top:6px}
+.stat-card .lbl{font-size:11.5px;color:rgba(255,255,255,.75);margin-top:2px}
+.chart-panel{
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:18px 18px 8px;
+  backdrop-filter:blur(6px);position:relative;z-index:1;
+}
+.chart-panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px}
+.chart-panel-head h3{margin:0;font-size:14px;font-weight:700}
+.filter-pills{display:flex;gap:6px}
+.filter-pills button{
+  background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 12px;
+  border-radius:20px;font-size:11.5px;font-weight:600;transition:.15s;
+}
+.filter-pills button.active{background:#fff;color:var(--blue-700)}
+.top-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;position:relative;z-index:1}
+.top-list li{display:flex;align-items:center;gap:10px;font-size:12.5px;background:rgba(255,255,255,.06);padding:8px 10px;border-radius:10px}
+.top-list .rank{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:800;flex-shrink:0}
+.top-list .name{flex:1;color:rgba(255,255,255,.9)}
+.top-list .pts{font-weight:800;font-family:'Sora'}
+
+.land-right{background:var(--bg);display:flex;align-items:center;justify-content:center;padding:40px}
+.login-card{width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:34px 30px;box-shadow:var(--shadow-lg)}
+.login-card h2{margin:0 0 4px;font-size:22px}
+.login-card .sub{color:var(--ink-soft);font-size:13px;margin:0 0 22px}
+.role-toggle{display:flex;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:18px}
+.role-toggle button{flex:1;border:0;background:transparent;padding:9px 0;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink-soft)}
+.role-toggle button.active{background:var(--blue-600);color:#fff;box-shadow:0 2px 8px rgba(28,102,196,.35)}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px}
+.input-wrap{position:relative}
+.input-wrap .msr{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-soft);font-size:19px}
+.input-wrap input{
+  width:100%;padding:11px 12px 11px 40px;border-radius:11px;border:1.5px solid var(--line);background:var(--surface-2);
+  font-size:13.5px;color:var(--ink);outline:none;transition:.15s;
+}
+.input-wrap input:focus{border-color:var(--blue-500);background:var(--surface);box-shadow:0 0 0 4px var(--blue-100)}
+.eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--ink-soft);padding:4px}
+.row-between{display:flex;justify-content:space-between;align-items:center;margin:2px 0 20px;font-size:12.5px;color:var(--ink-soft)}
+.chk{display:flex;align-items:center;gap:7px}
+.err-box{background:#fdeeec;border:1px solid #f6c6bd;color:var(--danger);font-size:12.5px;padding:9px 12px;border-radius:10px;margin-bottom:14px;display:none;align-items:center;gap:8px}
+[data-theme="dark"] .err-box{background:#3a1a16}
+.btn{border:0;border-radius:11px;padding:12px 18px;font-weight:700;font-size:13.5px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.15s}
+.btn-primary{background:var(--blue-600);color:#fff;width:100%;box-shadow:0 4px 14px rgba(28,102,196,.35)}
+.btn-primary:hover{background:var(--blue-700)}
+.btn-primary:disabled{opacity:.65;cursor:default}
+.btn-ghost{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:7px 12px;font-size:12px;border-radius:8px}
+.demo-hint{margin-top:16px;font-size:11.5px;color:var(--ink-soft);text-align:center;background:var(--surface-2);padding:8px;border-radius:8px;border:1px dashed var(--line)}
+.theme-toggle-fab{position:fixed;bottom:20px;right:20px;width:46px;height:46px;border-radius:50%;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;z-index:500}
+
+/* ---------- App shell ---------- */
+#app{display:none;min-height:100vh;grid-template-columns:250px 1fr}
+#app.show{display:grid}
+.sidebar{background:linear-gradient(180deg,var(--blue-900),var(--blue-700) 120%);color:#fff;padding:20px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 20px;flex-shrink:0}
+.sb-brand .brand-badge{width:38px;height:38px;font-size:14px;border-radius:11px}
+.sb-brand b{font-family:'Sora';font-size:13.5px;display:block;line-height:1.2}
+.sb-brand span{font-size:10px;opacity:.7}
+#navList{flex:1 1 auto;overflow-y:auto;min-height:0;padding-right:2px}
+#navList::-webkit-scrollbar{width:5px}
+#navList::-webkit-scrollbar-thumb{background:rgba(255,255,255,.2);border-radius:8px}
+.nav-group-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;opacity:.55;margin:14px 10px 6px;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,.82);margin-bottom:2px;border:0;background:transparent;width:100%;text-align:left}
+.nav-item .msr{font-size:19px}
+.nav-item:hover{background:rgba(255,255,255,.08)}
+.nav-item.active{background:#fff;color:var(--blue-700)}
+.sb-foot{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.15);flex-shrink:0}
+.sb-user{display:flex;align-items:center;gap:10px;padding:8px}
+.avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0}
+.sb-user .who b{display:block;font-size:12.5px}
+.sb-user .who span{font-size:10.5px;opacity:.7}
+
+.main{overflow-y:auto;height:100vh}
+.topbar{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--line);padding:14px 26px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(6px)}
+.topbar h1{font-size:17px;margin:0}
+.topbar .sub{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.icon-btn{width:38px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink-soft)}
+.icon-btn:hover{color:var(--blue-600)}
+.content{padding:24px 26px 60px}
+
+.grid-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.kpi-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi-card .ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--blue-100);color:var(--blue-600);margin-bottom:12px}
+.kpi-card .val{font-family:'Sora';font-size:26px;font-weight:800}
+.kpi-card .lbl{font-size:12px;color:var(--ink-soft);margin-top:2px}
+.kpi-card .trend{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}
+.trend.up{background:#e6f7ef;color:var(--success)}
+.trend.down{background:#fdeeec;color:var(--danger)}
+[data-theme=dark] .trend.up{background:#0c2a1e}
+[data-theme=dark] .trend.down{background:#331714}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:20px}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.panel-head h3{margin:0;font-size:15px}
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-box{position:relative}
+.search-box .msr{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink-soft);font-size:18px}
+.search-box input{padding:9px 12px 9px 36px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-2);font-size:12.5px;width:220px;color:var(--ink)}
+.sel{padding:9px 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-2);font-size:12.5px;color:var(--ink)}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead th{text-align:left;padding:10px 12px;color:var(--ink-soft);font-weight:700;border-bottom:1.5px solid var(--line);white-space:nowrap;background:var(--surface-2)}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:hover{background:var(--surface-2)}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line)}
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block}
+.badge.blue{background:var(--blue-100);color:var(--blue-700)}
+.badge.green{background:#e6f7ef;color:var(--success)}
+.badge.red{background:#fdeeec;color:var(--danger)}
+.badge.gray{background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line)}
+.act-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;color:var(--ink-soft);margin-right:4px}
+.act-btn:hover{color:var(--blue-600);border-color:var(--blue-300)}
+.act-btn.danger:hover{color:var(--danger)}
+.pagi{display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12px;color:var(--ink-soft)}
+.pagi-btns{display:flex;gap:6px}
+.empty-state{text-align:center;padding:40px 20px;color:var(--ink-soft)}
+.empty-state .msr{font-size:40px;opacity:.4;margin-bottom:8px}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(10,18,32,.55);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;backdrop-filter:blur(2px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:modalIn .2s ease}
+@keyframes modalIn{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);border-radius:16px 16px 0 0}
+.modal-head h3{margin:0;font-size:15.5px}
+.modal-body{padding:20px 22px}
+.modal-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+.form-field label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:5px}
+.form-field input,.form-field select,.form-field textarea{
+  width:100%;padding:9px 11px;border-radius:9px;border:1.5px solid var(--line);background:var(--surface-2);font-size:13px;color:var(--ink);font-family:inherit;outline:none
+}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--blue-500);box-shadow:0 0 0 4px var(--blue-100)}
+.close-x{background:none;border:0;color:var(--ink-soft);width:30px;height:30px;border-radius:8px}
+.close-x:hover{background:var(--surface-2)}
+
+.chip-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.chip-tab{padding:7px 14px;border-radius:20px;border:1.5px solid var(--line);background:var(--surface);font-size:12px;font-weight:600;color:var(--ink-soft)}
+.chip-tab.active{background:var(--blue-600);border-color:var(--blue-600);color:#fff}
+
+.point-preview{background:var(--blue-50);border:1px dashed var(--blue-500);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--blue-700);display:flex;align-items:center;gap:8px;font-weight:700}
+
+.hidden{display:none !important}
+.mb-0{margin-bottom:0}
+.text-soft{color:var(--ink-soft)}
+.spin-mini{width:16px;height:16px;border-radius:50%;border:2.5px solid rgba(255,255,255,.4);border-top-color:#fff;animation:spin .7s linear infinite;display:inline-block}
+
+@media(max-width:980px){
+  #landing{grid-template-columns:1fr}
+  .land-left{display:none}
+  .grid-cards{grid-template-columns:repeat(2,1fr)}
+  .two-col{grid-template-columns:1fr}
+  #app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:-260px;top:0;width:230px;z-index:900;transition:.25s;box-shadow:var(--shadow-lg)}
+  .sidebar.open{left:0}
+  .form-grid{grid-template-columns:1fr}
+}
+@media print{
+  .sidebar,.topbar,.no-print{display:none !important}
+  #app{display:block !important}
+  .main{height:auto;overflow:visible}
+  .content{padding:0}
+  body{background:#fff}
+}
+</style>
+</head>
+<body data-theme="light">
+
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-label">Memuat SiPelanggar…</div>
+</div>
+
+<div id="toastHost"></div>
+<button class="theme-toggle-fab no-print" id="themeFab" title="Ganti Tema"><span class="msr">dark_mode</span></button>
+
+<!-- ================= LANDING / LOGIN ================= -->
+<div id="landing">
+  <div class="land-left">
+    <div class="brandline">
+      <div class="brand-badge" id="landBrandBadge">S3</div>
+      <div class="brand-name"><b id="landSchoolName">SMP NEGERI 3 WAY PENGUBUN</b><span id="landSchoolTagline">Sistem Pencatat Poin & Pelanggaran Siswa</span></div>
+    </div>
+    <div class="land-hero">
+      <h1>Selamat datang di SiPelanggar.</h1>
+      <p>Aplikasi terpadu untuk guru BK dan wali kelas mencatat, memantau, dan menindaklanjuti pelanggaran tata tertib siswa secara real-time — lengkap dengan rekap poin dan laporan cetak.</p>
+    </div>
+    <div class="stat-grid" id="landStatGrid">
+      <div class="stat-card"><span class="msr">groups</span><div class="val" id="stTotalSiswa">–</div><div class="lbl">Total Siswa</div></div>
+      <div class="stat-card"><span class="msr">warning</span><div class="val" id="stTotalHariIni">–</div><div class="lbl">Pelanggaran Hari Ini</div></div>
+      <div class="stat-card"><span class="msr">calendar_month</span><div class="val" id="stTotalBulanIni">–</div><div class="lbl">Pelanggaran Bulan Ini</div></div>
+      <div class="stat-card"><span class="msr">school</span><div class="val" id="stKelasTerbanyak">–</div><div class="lbl">Kelas Terbanyak</div></div>
+    </div>
+    <div class="chart-panel">
+      <div class="chart-panel-head">
+        <h3>Rekap Pelanggaran</h3>
+        <div class="filter-pills" id="landFilterPills">
+          <button data-f="hari">Hari</button>
+          <button data-f="bulan" class="active">Bulan</button>
+          <button data-f="tahun">Tahun</button>
+        </div>
+      </div>
+      <div style="position:relative;height:170px;width:100%">
+        <canvas id="landChart"></canvas>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size:13px;margin:0 0 10px;opacity:.85">10 Pelanggaran Teratas</h3>
+      <ul class="top-list" id="landTopList"></ul>
+    </div>
+  </div>
+
+  <div class="land-right">
+    <div class="login-card">
+      <div class="err-box" id="connBanner" style="display:none"><span class="msr">wifi_off</span><span>Tidak dapat terhubung ke server database. Buka file ini langsung di browser (bukan jendela pratinjau) dan pastikan Anda terkoneksi internet, lalu muat ulang halaman.</span></div>
+      <h2>Masuk ke Akun</h2>
+      <p class="sub">Gunakan akun yang diberikan oleh admin sekolah.</p>
+      <div class="role-toggle">
+        <button class="active" data-role="Admin">Admin</button>
+        <button data-role="Guru">Guru</button>
+      </div>
+      <div class="err-box" id="loginErr"><span class="msr">error</span><span id="loginErrText">Username atau password salah.</span></div>
+      <form id="loginForm">
+        <div class="field">
+          <label>Username</label>
+          <div class="input-wrap">
+            <span class="msr">person</span>
+            <input type="text" id="loginUsername" placeholder="Masukkan username" autocomplete="username" required>
+          </div>
+        </div>
+        <div class="field mb-0">
+          <label>Password</label>
+          <div class="input-wrap">
+            <span class="msr">lock</span>
+            <input type="password" id="loginPassword" placeholder="Masukkan password" autocomplete="current-password" required>
+            <button type="button" class="eye-btn" id="eyeBtn"><span class="msr">visibility</span></button>
+          </div>
+        </div>
+        <div class="row-between">
+          <label class="chk"><input type="checkbox" id="rememberChk"> Ingat saya</label>
+          <a href="#" style="color:var(--blue-600);font-weight:600;text-decoration:none">Lupa password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginBtn"><span class="msr">login</span> Login</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP SHELL ================= -->
+<div id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <div class="brand-badge" id="sbBrandBadge">S3</div>
+      <div><b>SiPelanggar</b><span id="sbSchoolName">SMPN 3 Way Pengubun</span></div>
+    </div>
+    <nav id="navList"></nav>
+    <div class="sb-foot">
+      <div class="sb-user">
+        <div class="avatar" id="sbAvatar">A</div>
+        <div class="who"><b id="sbName">–</b><span id="sbRole">–</span></div>
+      </div>
+      <button class="nav-item" id="logoutBtn" style="margin-top:6px"><span class="msr">logout</span> Keluar</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="icon-btn no-print" id="burgerBtn" style="display:none"><span class="msr">menu</span></button>
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <div class="sub" id="pageSub">Ringkasan aktivitas hari ini</div>
+        </div>
+      </div>
+      <div class="topbar-right no-print">
+        <button class="icon-btn" id="refreshBtn" title="Muat ulang"><span class="msr">refresh</span></button>
+      </div>
+    </div>
+    <div class="content" id="pageContent"></div>
+  </main>
+</div>
+
+<!-- Modal generic -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Judul</h3>
+      <button class="close-x" id="modalCloseBtn"><span class="msr">close</span></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<!-- Confirm dialog -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-body" style="text-align:center;padding-top:30px">
+      <div style="width:56px;height:56px;border-radius:50%;background:#fdeeec;color:var(--danger);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><span class="msr" style="font-size:28px">delete</span></div>
+      <h3 style="margin:0 0 6px" id="confirmTitle">Hapus data ini?</h3>
+      <p class="text-soft" style="font-size:13px;margin:0" id="confirmText">Tindakan ini tidak dapat dibatalkan.</p>
+    </div>
+    <div class="modal-foot" style="justify-content:center">
+      <button class="btn btn-ghost" id="confirmCancelBtn">Batal</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   KONFIGURASI SUPABASE
+========================================================= */
+const SUPABASE_URL = "https://xrkzwfxlhdcgqyxyptbu.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhya3p3ZnhsaGRjZ3F5eHlwdGJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MzgyOTQsImV4cCI6MjA5OTExNDI5NH0.v4mx_OUJ2CHXpqOpxJlRG2jtZG7DXY5rx0glxiLKHgk";
+const REST = SUPABASE_URL + "/rest/v1/";
+
+async function sb(path, opts={}) {
+  const headers = Object.assign({
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+    "Content-Type": "application/json"
+  }, opts.headers || {});
+  let res;
+  try{
+    res = await fetch(REST + path, Object.assign({}, opts, {headers}));
+  }catch(networkErr){
+    // fetch() melempar TypeError murni jika request gagal terkirim sama sekali:
+    // biasanya karena tidak ada koneksi internet, domain diblokir, atau halaman
+    // dibuka di jendela pratinjau/sandbox yang tidak mengizinkan koneksi keluar.
+    throw new Error("Tidak dapat terhubung ke server database. Pastikan perangkat Anda terkoneksi internet dan file ini dibuka langsung di browser (Chrome/Edge/Safari), bukan di jendela pratinjau.");
+  }
+  if (!res.ok) {
+    const t = await res.text();
+    let msg = t || res.statusText;
+    try{ const j = JSON.parse(t); msg = j.message || j.msg || j.error_description || msg; }catch(e){}
+    throw new Error(msg);
+  }
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) return res.json();
+  return null;
+}
+const sbGet = (path) => sb(path, {method:"GET"});
+const sbPost = (path, body) => sb(path, {method:"POST", headers:{"Prefer":"return=representation"}, body: JSON.stringify(body)});
+const sbPatch = (path, body) => sb(path, {method:"PATCH", headers:{"Prefer":"return=representation"}, body: JSON.stringify(body)});
+const sbDelete = (path) => sb(path, {method:"DELETE", headers:{"Prefer":"return=representation"}});
+
+const STORAGE_BUCKET = "sekolah-assets";
+/* Panggil fungsi RPC khusus admin, otomatis menyertakan session token dari login */
+async function adminRpc(fnName, params={}){
+  if (!CURRENT_USER || !CURRENT_USER.session_token){
+    throw new Error("Sesi Anda tidak valid. Silakan login ulang.");
+  }
+  return sb(`rpc/${fnName}`, {method:"POST", headers:{"Prefer":"return=representation"}, body: JSON.stringify(Object.assign({p_token: CURRENT_USER.session_token}, params))});
+}
+/* Upload gambar (logo / kop surat) ke Supabase Storage, mengembalikan URL publik */
+async function uploadImageToStorage(file, folder){
+  if (!file) throw new Error("Tidak ada file dipilih.");
+  if (!file.type.startsWith("image/")){ throw new Error("File harus berupa gambar (PNG/JPG)."); }
+  if (file.size > 2*1024*1024){ throw new Error("Ukuran file maksimal 2MB."); }
+  const ext = (file.name.split(".").pop() || "png").toLowerCase();
+  const path = `${folder}/${folder}_${Date.now()}.${ext}`;
+  let res;
+  try{
+    res = await fetch(`${SUPABASE_URL}/storage/v1/object/${STORAGE_BUCKET}/${path}`, {
+      method: "POST",
+      headers: { "apikey": SUPABASE_ANON_KEY, "Authorization": "Bearer " + SUPABASE_ANON_KEY, "Content-Type": file.type, "x-upsert": "true" },
+      body: file
+    });
+  }catch(e){
+    throw new Error("Tidak dapat terhubung ke server penyimpanan. Periksa koneksi internet Anda.");
+  }
+  if (!res.ok){
+    const t = await res.text();
+    let msg = t;
+    try{ msg = JSON.parse(t).message || msg; }catch(e){}
+    throw new Error("Gagal upload: " + msg);
+  }
+  return `${SUPABASE_URL}/storage/v1/object/public/${STORAGE_BUCKET}/${path}`;
+}
+
+/* =========================================================
+   STATE
+========================================================= */
+let CURRENT_USER = null; // {id,nama,jabatan,kelas_diampu,username}
+let CACHE = { siswa:[], guru:[], jenis:[], riwayat:[], sekolah:null, semester:[], log:[], cetak:{} };
+let ACTIVE_PAGE = "dashboard";
+
+/* =========================================================
+   TOAST
+========================================================= */
+function toast(msg, type="success", title=null){
+  const host = document.getElementById("toastHost");
+  const icon = type==="success"?"check_circle":type==="error"?"error":"info";
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.innerHTML = `<span class="msr">${icon}</span><div><b>${title || (type==="success"?"Berhasil":type==="error"?"Gagal":"Info")}</b>${msg}</div>`;
+  host.appendChild(el);
+  setTimeout(()=>{ el.style.opacity="0"; el.style.transform="translateX(24px)"; el.style.transition=".25s"; setTimeout(()=>el.remove(),250); }, 3200);
+}
+
+/* =========================================================
+   THEME
+========================================================= */
+function initTheme(){
+  const saved = localStorage.getItem("sipelanggar_theme") || "light";
+  document.body.setAttribute("data-theme", saved);
+  document.getElementById("themeFab").querySelector(".msr").textContent = saved==="dark" ? "light_mode" : "dark_mode";
+}
+document.getElementById("themeFab").addEventListener("click", ()=>{
+  const cur = document.body.getAttribute("data-theme");
+  const next = cur==="dark" ? "light" : "dark";
+  document.body.setAttribute("data-theme", next);
+  localStorage.setItem("sipelanggar_theme", next);
+  document.getElementById("themeFab").querySelector(".msr").textContent = next==="dark" ? "light_mode" : "dark_mode";
+});
+
+/* =========================================================
+   LOGIN
+========================================================= */
+let selectedRole = "Admin";
+document.querySelectorAll(".role-toggle button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".role-toggle button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    selectedRole = btn.dataset.role;
+  });
+});
+document.getElementById("eyeBtn").addEventListener("click", ()=>{
+  const inp = document.getElementById("loginPassword");
+  const icon = document.getElementById("eyeBtn").querySelector(".msr");
+  if (inp.type==="password"){ inp.type="text"; icon.textContent="visibility_off"; }
+  else { inp.type="password"; icon.textContent="visibility"; }
+});
+
+document.getElementById("loginForm").addEventListener("submit", async (e)=>{
+  e.preventDefault();
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const errBox = document.getElementById("loginErr");
+  const btn = document.getElementById("loginBtn");
+  errBox.style.display = "none";
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin-mini"></span> Memproses...';
+  try{
+    const rows = await sbPost("rpc/login_guru", {p_username: username, p_password: password});
+    if (!rows || rows.length===0){
+      throw new Error("Username atau password salah, atau akun tidak aktif.");
+    }
+    const user = rows[0];
+    // Validate the tab (Admin vs Guru) roughly matches
+    if (selectedRole === "Admin" && user.jabatan !== "Admin"){
+      throw new Error("Akun ini bukan akun Admin. Silakan pilih tab Guru.");
+    }
+    if (selectedRole === "Guru" && user.jabatan === "Admin"){
+      throw new Error("Akun ini adalah akun Admin. Silakan pilih tab Admin.");
+    }
+    CURRENT_USER = user;
+    if (document.getElementById("rememberChk").checked){
+      localStorage.setItem("sipelanggar_user", JSON.stringify(user));
+    } else {
+      sessionStorage.setItem("sipelanggar_user", JSON.stringify(user));
+    }
+    await logActivity(`${user.nama} login ke sistem`);
+    enterApp();
+  }catch(err){
+    document.getElementById("loginErrText").textContent = err.message || "Terjadi kesalahan saat login.";
+    errBox.style.display = "flex";
+  }finally{
+    btn.disabled = false;
+    btn.innerHTML = '<span class="msr">login</span> Login';
+  }
+});
+
+function tryRestoreSession(){
+  const raw = localStorage.getItem("sipelanggar_user") || sessionStorage.getItem("sipelanggar_user");
+  if (raw){
+    try{ CURRENT_USER = JSON.parse(raw); return true; }catch(e){ return false; }
+  }
+  return false;
+}
+
+document.getElementById("logoutBtn").addEventListener("click", async ()=>{
+  if (CURRENT_USER) await logActivity(`${CURRENT_USER.nama} logout`);
+  localStorage.removeItem("sipelanggar_user");
+  sessionStorage.removeItem("sipelanggar_user");
+  CURRENT_USER = null;
+  document.getElementById("app").classList.remove("show");
+  document.getElementById("landing").style.display = "grid";
+  document.getElementById("loginForm").reset();
+});
+
+async function logActivity(text){
+  try{
+    await sbPost("log_aktivitas", {guru_id: CURRENT_USER? CURRENT_USER.id : null, nama_guru: CURRENT_USER? CURRENT_USER.nama : "System", aktivitas: text});
+  }catch(e){ /* silent */ }
+}
+
+/* Auto logout jika tidak aktif 20 menit */
+let idleTimer;
+function resetIdleTimer(){
+  clearTimeout(idleTimer);
+  if (!CURRENT_USER) return;
+  idleTimer = setTimeout(()=>{
+    toast("Sesi berakhir karena tidak ada aktivitas.", "warn", "Auto Logout");
+    document.getElementById("logoutBtn").click();
+  }, 20*60*1000);
+}
+["click","keydown","mousemove","scroll"].forEach(ev=>document.addEventListener(ev, resetIdleTimer));
+
+/* =========================================================
+   BOOTSTRAP LANDING STATS
+========================================================= */
+async function loadLandingStats(){
+  try{
+    const [siswa, riwayat, sekolahArr] = await Promise.all([
+      sbGet("siswa?select=id"),
+      sbGet("riwayat_pelanggaran?select=id,tanggal,siswa_id,jenis_pelanggaran_id,jenis_pelanggaran(nama,poin,kategori),siswa(kelas,nama)&order=tanggal.desc&limit=2000"),
+      sbGet("sekolah?select=nama_sekolah,logo_url&limit=1")
+    ]);
+    document.getElementById("connBanner").style.display = "none";
+    CACHE.siswa = siswa || [];
+    CACHE.riwayat_public = riwayat || [];
+    CACHE.sekolah = (sekolahArr && sekolahArr[0]) || {};
+    applyBranding();
+    const today = new Date().toISOString().slice(0,10);
+    const thisMonth = today.slice(0,7);
+    document.getElementById("stTotalSiswa").textContent = siswa.length;
+    document.getElementById("stTotalHariIni").textContent = riwayat.filter(r=>r.tanggal===today).length;
+    document.getElementById("stTotalBulanIni").textContent = riwayat.filter(r=>r.tanggal && r.tanggal.slice(0,7)===thisMonth).length;
+    const kelasCount = {};
+    riwayat.forEach(r=>{ if(r.siswa){ kelasCount[r.siswa.kelas] = (kelasCount[r.siswa.kelas]||0)+1; } });
+    const topKelas = Object.entries(kelasCount).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById("stKelasTerbanyak").textContent = topKelas ? topKelas[0] : "-";
+    renderLandingChart("bulan");
+    renderLandingTopList();
+  }catch(e){
+    console.error(e);
+    document.getElementById("connBanner").style.display = "flex";
+  }
+}
+/* Terapkan logo sekolah (jika ada) ke badge landing & sidebar */
+function applyBranding(){
+  const namaSekolah = (CACHE.sekolah && CACHE.sekolah.nama_sekolah) || "";
+  const logo = CACHE.sekolah && CACHE.sekolah.logo_url;
+  const imgHtml = logo ? `<img src="${esc(logo)}" style="width:100%;height:100%;object-fit:contain;border-radius:inherit">` : null;
+  const landBadge = document.getElementById("landBrandBadge");
+  const sbBadge = document.getElementById("sbBrandBadge");
+  if (landBadge) landBadge.innerHTML = imgHtml || "S3";
+  if (sbBadge) sbBadge.innerHTML = imgHtml || "S3";
+
+  const landSchoolName = document.getElementById("landSchoolName");
+  if (landSchoolName) landSchoolName.textContent = namaSekolah || "SMP NEGERI 3 WAY PENGUBUN";
+
+  const sbSchoolName = document.getElementById("sbSchoolName");
+  if (sbSchoolName) sbSchoolName.textContent = namaSekolah || "SMPN 3 Way Pengubun";
+}
+
+let landChartInstance = null;
+function filterByPeriod(rows, period){
+  const now = new Date();
+  return rows.filter(r=>{
+    if (!r.tanggal) return false;
+    const d = new Date(r.tanggal+"T00:00:00");
+    if (period==="hari") return d.toDateString()===now.toDateString();
+    if (period==="bulan") return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    if (period==="tahun") return d.getFullYear()===now.getFullYear();
+    return true;
+  });
+}
+function renderLandingChart(period){
+  const canvasEl = document.getElementById("landChart");
+  if (typeof Chart === "undefined"){
+    const wrap = canvasEl ? canvasEl.parentElement : null;
+    if (wrap) wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.7);font-size:12px;text-align:center;padding:0 20px">Modul grafik gagal dimuat. Periksa koneksi internet Anda lalu muat ulang halaman.</div>`;
+    return;
+  }
+  const rows = filterByPeriod(CACHE.riwayat_public || [], period);
+  const kategoriCount = {};
+  rows.forEach(r=>{
+    const kat = r.jenis_pelanggaran ? r.jenis_pelanggaran.kategori : "Lainnya";
+    kategoriCount[kat] = (kategoriCount[kat]||0)+1;
+  });
+  const labels = Object.keys(kategoriCount);
+  const data = Object.values(kategoriCount);
+  const ctx = document.getElementById("landChart");
+  if (landChartInstance) landChartInstance.destroy();
+  landChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: { labels: labels.length?labels:["Belum ada data"], datasets:[{ data: data.length?data:[0], backgroundColor:"rgba(255,255,255,0.85)", borderRadius:6, maxBarThickness:34 }] },
+    options: {
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:"rgba(255,255,255,.75)",font:{size:10.5}},grid:{display:false}},
+        y:{beginAtZero:true, ticks:{color:"rgba(255,255,255,.75)",font:{size:10.5},precision:0},grid:{color:"rgba(255,255,255,.12)"}}
+      }
+    }
+  });
+}
+document.getElementById("landFilterPills").addEventListener("click",(e)=>{
+  const btn = e.target.closest("button"); if(!btn) return;
+  document.querySelectorAll("#landFilterPills button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  renderLandingChart(btn.dataset.f);
+});
+function renderLandingTopList(){
+  const rows = CACHE.riwayat_public || [];
+  const count = {};
+  rows.forEach(r=>{
+    const nm = r.jenis_pelanggaran ? r.jenis_pelanggaran.nama : "Lainnya";
+    count[nm] = (count[nm]||0)+1;
+  });
+  const top = Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const ul = document.getElementById("landTopList");
+  ul.innerHTML = top.length ? top.map((t,i)=>`<li><span class="rank">${i+1}</span><span class="name">${t[0]}</span><span class="pts">${t[1]}x</span></li>`).join("") : `<li class="text-soft">Belum ada data pelanggaran.</li>`;
+}
+
+/* =========================================================
+   ENTER APP
+========================================================= */
+async function enterApp(){
+  document.getElementById("landing").style.display = "none";
+  document.getElementById("app").classList.add("show");
+  document.getElementById("sbName").textContent = CURRENT_USER.nama;
+  document.getElementById("sbRole").textContent = CURRENT_USER.jabatan + (CURRENT_USER.kelas_diampu ? " · "+CURRENT_USER.kelas_diampu : "");
+  document.getElementById("sbAvatar").textContent = CURRENT_USER.nama.split(" ").map(s=>s[0]).slice(0,2).join("").toUpperCase();
+  buildNav();
+  await refreshAllData();
+  applyBranding();
+  navigateTo("dashboard");
+}
+
+function buildNav(){
+  const isAdmin = CURRENT_USER.jabatan === "Admin";
+  const items = [];
+  items.push({id:"dashboard", icon:"space_dashboard", label:"Dashboard"});
+  if (isAdmin){
+    items.push({group:"Data Master"});
+    items.push({id:"siswa", icon:"groups", label:"Data Siswa"});
+    items.push({id:"jenis", icon:"rule", label:"Data Pelanggaran"});
+    items.push({id:"guru", icon:"badge", label:"Manajemen Guru"});
+    items.push({group:"Transaksi"});
+  } else {
+    items.push({group:"Menu"});
+  }
+  items.push({id:"input", icon:"edit_note", label:"Input Pelanggaran"});
+  items.push({id:"riwayat", icon:"history", label:"Riwayat"});
+  items.push({id:"laporan", icon:"summarize", label:"Laporan"});
+  if (isAdmin){
+    items.push({group:"Pengaturan"});
+    items.push({id:"sekolah", icon:"apartment", label:"Data Sekolah"});
+    items.push({id:"semester", icon:"event_repeat", label:"Tahun & Semester"});
+    items.push({id:"cetak", icon:"print", label:"Pengaturan Cetak"});
+    items.push({id:"log", icon:"receipt_long", label:"Log Aktivitas"});
+  }
+  items.push({group:"Akun"});
+  items.push({id:"profil", icon:"person", label:"Profil"});
+
+  const nav = document.getElementById("navList");
+  nav.innerHTML = items.map(it=>{
+    if (it.group) return `<div class="nav-group-label">${it.group}</div>`;
+    return `<button class="nav-item" data-page="${it.id}"><span class="msr">${it.icon}</span>${it.label}</button>`;
+  }).join("");
+  nav.querySelectorAll(".nav-item").forEach(btn=>{
+    btn.addEventListener("click", ()=> navigateTo(btn.dataset.page));
+  });
+}
+
+async function refreshAllData(){
+  const [siswa, guru, jenis, riwayat, sekolahArr, semester, log, cetakArr] = await Promise.all([
+    sbGet("siswa?select=*&order=nama.asc"),
+    sbGet("guru?select=id,nama,nip,username,jabatan,kelas_diampu,aktif&order=nama.asc"),
+    sbGet("jenis_pelanggaran?select=*&order=kategori.asc"),
+    sbGet("riwayat_pelanggaran?select=*,siswa(nama,kelas,nis),jenis_pelanggaran(nama,poin,kategori),guru(nama)&order=tanggal.desc,created_at.desc"),
+    sbGet("sekolah?select=*&limit=1"),
+    sbGet("semester?select=*&order=tahun_pelajaran.desc,semester.asc"),
+    sbGet("log_aktivitas?select=*&order=created_at.desc&limit=500"),
+    sbGet("pengaturan_cetak?select=*&limit=1")
+  ]);
+  CACHE.siswa = siswa || [];
+  CACHE.guru = guru || [];
+  CACHE.jenis = jenis || [];
+  CACHE.riwayat = riwayat || [];
+  CACHE.sekolah = (sekolahArr && sekolahArr[0]) || {};
+  CACHE.semester = semester || [];
+  CACHE.log = log || [];
+  CACHE.cetak = (cetakArr && cetakArr[0]) || {};
+  applyBranding();
+}
+
+document.getElementById("refreshBtn").addEventListener("click", async ()=>{
+  document.getElementById("refreshBtn").querySelector(".msr").style.animation = "spin .6s linear";
+  await refreshAllData();
+  navigateTo(ACTIVE_PAGE);
+  toast("Data diperbarui.");
+  setTimeout(()=> document.getElementById("refreshBtn").querySelector(".msr").style.animation="", 600);
+});
+
+/* Restricted rows for Wali Kelas */
+function visibleSiswa(){
+  if (CURRENT_USER.jabatan === "Wali Kelas") return CACHE.siswa.filter(s=>s.kelas===CURRENT_USER.kelas_diampu);
+  return CACHE.siswa;
+}
+function visibleRiwayat(){
+  if (CURRENT_USER.jabatan === "Wali Kelas") return CACHE.riwayat.filter(r=>r.siswa && r.siswa.kelas===CURRENT_USER.kelas_diampu);
+  return CACHE.riwayat;
+}
+
+/* =========================================================
+   ROUTER
+========================================================= */
+const PAGE_META = {
+  dashboard:{title:"Dashboard", sub:"Ringkasan aktivitas & statistik pelanggaran"},
+  siswa:{title:"Data Siswa", sub:"Kelola data induk siswa"},
+  jenis:{title:"Data Pelanggaran", sub:"Master jenis pelanggaran & bobot poin"},
+  guru:{title:"Manajemen Guru", sub:"Kelola akun guru BK & wali kelas"},
+  input:{title:"Input Pelanggaran", sub:"Catat pelanggaran siswa baru"},
+  riwayat:{title:"Riwayat Pelanggaran", sub:"Seluruh catatan pelanggaran"},
+  laporan:{title:"Laporan", sub:"Rekap & cetak laporan pelanggaran"},
+  sekolah:{title:"Data Sekolah", sub:"Identitas & pengaturan sekolah"},
+  semester:{title:"Tahun & Semester", sub:"Kelola tahun pelajaran dan semester aktif"},
+  cetak:{title:"Pengaturan Cetak", sub:"Kop surat, tanda tangan, dan format PDF"},
+  log:{title:"Log Aktivitas", sub:"Riwayat aktivitas seluruh pengguna sistem"},
+  profil:{title:"Profil Saya", sub:"Kelola informasi akun anda"},
+};
+
+function navigateTo(page){
+  ACTIVE_PAGE = page;
+  document.querySelectorAll(".nav-item[data-page]").forEach(b=> b.classList.toggle("active", b.dataset.page===page));
+  document.getElementById("pageTitle").textContent = PAGE_META[page].title;
+  document.getElementById("pageSub").textContent = PAGE_META[page].sub;
+  const map = { dashboard: renderDashboard, siswa: renderSiswa, jenis: renderJenis, guru: renderGuru, input: renderInput, riwayat: renderRiwayat, laporan: renderLaporan, sekolah: renderSekolah, semester: renderSemester, cetak: renderCetak, log: renderLog, profil: renderProfil };
+  (map[page] || renderDashboard)();
+  document.getElementById("sidebar").classList.remove("open");
+}
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+let dashChartInstance = null, dashChart2Instance = null;
+function renderDashboard(){
+  const riwayat = visibleRiwayat();
+  const today = new Date().toISOString().slice(0,10);
+  const thisMonth = today.slice(0,7);
+  const totalSiswa = visibleSiswa().length;
+  const totalGuru = CACHE.guru.length;
+  const hariIni = riwayat.filter(r=>r.tanggal===today).length;
+  const bulanIni = riwayat.filter(r=>r.tanggal && r.tanggal.slice(0,7)===thisMonth).length;
+
+  document.getElementById("pageContent").innerHTML = `
+    <div class="grid-cards">
+      <div class="kpi-card"><div class="ico"><span class="msr">groups</span></div><div class="val">${totalSiswa}</div><div class="lbl">Jumlah Siswa</div></div>
+      <div class="kpi-card"><div class="ico"><span class="msr">badge</span></div><div class="val">${totalGuru}</div><div class="lbl">Jumlah Guru</div></div>
+      <div class="kpi-card"><div class="ico"><span class="msr">event</span></div><div class="val">${hariIni}</div><div class="lbl">Pelanggaran Hari Ini</div></div>
+      <div class="kpi-card"><div class="ico"><span class="msr">calendar_month</span></div><div class="val">${bulanIni}</div><div class="lbl">Pelanggaran Bulan Ini</div></div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Statistik Pelanggaran per Kategori</h3>
+          <div class="chip-tabs" id="dashFilterTabs">
+            <button class="chip-tab active" data-f="bulan">Bulan Ini</button>
+            <button class="chip-tab" data-f="tahun">Tahun Ini</button>
+            <button class="chip-tab" data-f="all">Semua</button>
+          </div>
+        </div>
+        <div style="position:relative;height:220px;width:100%"><canvas id="dashChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Kelas dengan Pelanggaran Terbanyak</h3>
+        <div style="position:relative;height:260px;width:100%"><canvas id="dashChart2"></canvas></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">10 Pelanggaran Teratas</h3>
+      <div id="dashTop10"></div>
+    </div>
+  `;
+  document.getElementById("dashFilterTabs").addEventListener("click",(e)=>{
+    const btn = e.target.closest("button"); if(!btn) return;
+    document.querySelectorAll("#dashFilterTabs button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    drawDashCharts(btn.dataset.f);
+  });
+  drawDashCharts("bulan");
+  renderDashTop10();
+}
+function drawDashCharts(period){
+  if (typeof Chart === "undefined"){
+    ["dashChart","dashChart2"].forEach(id=>{
+      const el = document.getElementById(id);
+      const wrap = el ? el.parentElement : null;
+      if (wrap) wrap.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--ink-soft);font-size:12px;text-align:center;padding:0 20px">Modul grafik gagal dimuat. Periksa koneksi internet Anda lalu muat ulang halaman.</div>`;
+    });
+    return;
+  }
+  const riwayat = visibleRiwayat();
+  const rows = period==="all" ? riwayat : filterByPeriod(riwayat, period);
+  const katCount = {};
+  rows.forEach(r=>{ const k = r.jenis_pelanggaran?r.jenis_pelanggaran.kategori:"Lainnya"; katCount[k]=(katCount[k]||0)+1; });
+  const ctx1 = document.getElementById("dashChart");
+  if (dashChartInstance) dashChartInstance.destroy();
+  dashChartInstance = new Chart(ctx1, {
+    type:"doughnut",
+    data:{ labels:Object.keys(katCount).length?Object.keys(katCount):["Tidak ada data"], datasets:[{data:Object.values(katCount).length?Object.values(katCount):[1], backgroundColor:["#1c66c4","#2b7de9","#7db8f5","#0b2a52","#c8890a","#e0432b","#1a9e6b"], borderWidth:0}]},
+    options:{maintainAspectRatio:false, plugins:{legend:{position:"bottom", labels:{boxWidth:10,font:{size:11}}}}, cutout:"62%"}
+  });
+  const kelasCount = {};
+  rows.forEach(r=>{ if(r.siswa){ kelasCount[r.siswa.kelas]=(kelasCount[r.siswa.kelas]||0)+1; } });
+  const topKelas = Object.entries(kelasCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ctx2 = document.getElementById("dashChart2");
+  if (dashChart2Instance) dashChart2Instance.destroy();
+  dashChart2Instance = new Chart(ctx2, {
+    type:"bar",
+    data:{ labels: topKelas.length? topKelas.map(t=>t[0]):["Tidak ada data"], datasets:[{data:topKelas.length?topKelas.map(t=>t[1]):[0], backgroundColor:"#2b7de9", borderRadius:6, maxBarThickness:28}]},
+    options:{maintainAspectRatio:false, indexAxis:"y", plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true, ticks:{precision:0}, grid:{color:"rgba(120,140,170,.15)"}}, y:{grid:{display:false}}}}
+  });
+}
+function renderDashTop10(){
+  const riwayat = visibleRiwayat();
+  const count = {};
+  riwayat.forEach(r=>{ const nm = r.jenis_pelanggaran?r.jenis_pelanggaran.nama:"Lainnya"; count[nm]=(count[nm]||0)+1; });
+  const top = Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const host = document.getElementById("dashTop10");
+  if (!top.length){ host.innerHTML = `<div class="empty-state"><span class="msr">inbox</span><div>Belum ada data pelanggaran.</div></div>`; return; }
+  const max = top[0][1];
+  host.innerHTML = top.map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <div style="width:22px;font-weight:800;color:var(--ink-soft);font-size:12px">${i+1}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px"><span>${t[0]}</span><b>${t[1]}x</b></div>
+        <div style="height:7px;background:var(--surface-2);border-radius:6px;overflow:hidden"><div style="height:100%;width:${(t[1]/max*100).toFixed(0)}%;background:linear-gradient(90deg,var(--blue-500),var(--blue-700));border-radius:6px"></div></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* =========================================================
+   HELPERS: table render, pagination, search
+========================================================= */
+function esc(s){ return (s===null||s===undefined) ? "" : String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function paginate(rows, page, perPage){ const start=(page-1)*perPage; return rows.slice(start, start+perPage); }
+
+/* =========================================================
+   DATA SISWA (Admin)
+========================================================= */
+let siswaState = { page:1, perPage:8, q:"", kelas:"" };
+function renderSiswa(){
+  const kelasList = [...new Set(CACHE.siswa.map(s=>s.kelas))].sort();
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="toolbar">
+          <div class="search-box"><span class="msr">search</span><input id="siswaSearch" placeholder="Cari nama / NIS..." value="${esc(siswaState.q)}"></div>
+          <select class="sel" id="siswaKelasFilter"><option value="">Semua Kelas</option>${kelasList.map(k=>`<option ${k===siswaState.kelas?"selected":""}>${k}</option>`).join("")}</select>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="templateSiswaBtn"><span class="msr">description</span> Unduh Template</button>
+          <button class="btn btn-ghost btn-sm" id="importSiswaBtn"><span class="msr">upload_file</span> Import Excel</button>
+          <button class="btn btn-ghost btn-sm" id="exportSiswaBtn"><span class="msr">download</span> Export Excel</button>
+          <button class="btn btn-primary btn-sm" id="addSiswaBtn"><span class="msr">add</span> Tambah Siswa</button>
+          <input type="file" id="importSiswaInput" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Orang Tua</th><th>No. HP</th><th></th></tr></thead>
+        <tbody id="siswaTbody"></tbody>
+      </table></div>
+      <div class="pagi" id="siswaPagi"></div>
+    </div>
+  `;
+  document.getElementById("addSiswaBtn").addEventListener("click", ()=>openSiswaModal());
+  document.getElementById("siswaSearch").addEventListener("input", (e)=>{ siswaState.q=e.target.value; siswaState.page=1; drawSiswaTable(); });
+  document.getElementById("siswaKelasFilter").addEventListener("change", (e)=>{ siswaState.kelas=e.target.value; siswaState.page=1; drawSiswaTable(); });
+  document.getElementById("templateSiswaBtn").addEventListener("click", downloadTemplateSiswa);
+  document.getElementById("exportSiswaBtn").addEventListener("click", exportSiswaExcel);
+  document.getElementById("importSiswaBtn").addEventListener("click", ()=>document.getElementById("importSiswaInput").click());
+  document.getElementById("importSiswaInput").addEventListener("change", handleImportSiswaFile);
+  drawSiswaTable();
+}
+function drawSiswaTable(){
+  let rows = CACHE.siswa.filter(s=>
+    (!siswaState.q || (s.nama+s.nis).toLowerCase().includes(siswaState.q.toLowerCase())) &&
+    (!siswaState.kelas || s.kelas===siswaState.kelas)
+  );
+  const totalPages = Math.max(1, Math.ceil(rows.length/siswaState.perPage));
+  siswaState.page = Math.min(siswaState.page, totalPages);
+  const pageRows = paginate(rows, siswaState.page, siswaState.perPage);
+  const tbody = document.getElementById("siswaTbody");
+  tbody.innerHTML = pageRows.length ? pageRows.map(s=>`
+    <tr>
+      <td>${esc(s.nis)}</td><td><b>${esc(s.nama)}</b></td><td><span class="badge blue">${esc(s.kelas)}</span></td>
+      <td>${esc(s.jenis_kelamin||"-")}</td><td>${esc(s.nama_ortu||"-")}</td><td>${esc(s.hp_ortu||"-")}</td>
+      <td>
+        <button class="act-btn" title="Detail" onclick="openSiswaDetail(${s.id})"><span class="msr">visibility</span></button>
+        <button class="act-btn" title="Edit" onclick="openSiswaModal(${s.id})"><span class="msr">edit</span></button>
+        <button class="act-btn danger" title="Hapus" onclick="confirmDeleteSiswa(${s.id})"><span class="msr">delete</span></button>
+      </td>
+    </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state"><span class="msr">group_off</span><div>Tidak ada data siswa.</div></div></td></tr>`;
+  document.getElementById("siswaPagi").innerHTML = `
+    <span>Menampilkan ${pageRows.length} dari ${rows.length} siswa</span>
+    <div class="pagi-btns">
+      <button class="act-btn" ${siswaState.page<=1?"disabled":""} onclick="siswaState.page--;drawSiswaTable()"><span class="msr">chevron_left</span></button>
+      <span style="padding:0 6px">${siswaState.page}/${totalPages}</span>
+      <button class="act-btn" ${siswaState.page>=totalPages?"disabled":""} onclick="siswaState.page++;drawSiswaTable()"><span class="msr">chevron_right</span></button>
+    </div>`;
+}
+function openSiswaModal(id=null){
+  const s = id ? CACHE.siswa.find(x=>x.id===id) : {};
+  document.getElementById("modalTitle").textContent = id ? "Edit Data Siswa" : "Tambah Siswa Baru";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="form-grid">
+      <div class="form-field"><label>NIS</label><input id="f_nis" value="${esc(s.nis)}" ${id?"disabled":""}></div>
+      <div class="form-field"><label>NISN</label><input id="f_nisn" value="${esc(s.nisn)}"></div>
+      <div class="form-field full"><label>Nama Lengkap</label><input id="f_nama" value="${esc(s.nama)}"></div>
+      <div class="form-field"><label>Kelas</label><input id="f_kelas" value="${esc(s.kelas)}" placeholder="cth: VII-A"></div>
+      <div class="form-field"><label>Jenis Kelamin</label><select id="f_jk"><option value="L" ${s.jenis_kelamin==="L"?"selected":""}>Laki-laki</option><option value="P" ${s.jenis_kelamin==="P"?"selected":""}>Perempuan</option></select></div>
+      <div class="form-field"><label>Tempat Lahir</label><input id="f_tempat" value="${esc(s.tempat_lahir)}"></div>
+      <div class="form-field"><label>Tanggal Lahir</label><input type="date" id="f_tgl" value="${s.tanggal_lahir||""}"></div>
+      <div class="form-field full"><label>Alamat</label><input id="f_alamat" value="${esc(s.alamat)}"></div>
+      <div class="form-field"><label>Nama Orang Tua</label><input id="f_ortu" value="${esc(s.nama_ortu)}"></div>
+      <div class="form-field"><label>No. HP Orang Tua</label><input id="f_hportu" value="${esc(s.hp_ortu)}"></div>
+    </div>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mSave"><span class="msr">save</span> Simpan</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = async ()=>{
+    const payload = {
+      nis: document.getElementById("f_nis").value.trim(),
+      nisn: document.getElementById("f_nisn").value.trim(),
+      nama: document.getElementById("f_nama").value.trim(),
+      kelas: document.getElementById("f_kelas").value.trim(),
+      jenis_kelamin: document.getElementById("f_jk").value,
+      tempat_lahir: document.getElementById("f_tempat").value.trim(),
+      tanggal_lahir: document.getElementById("f_tgl").value || null,
+      alamat: document.getElementById("f_alamat").value.trim(),
+      nama_ortu: document.getElementById("f_ortu").value.trim(),
+      hp_ortu: document.getElementById("f_hportu").value.trim(),
+    };
+    if (!payload.nama || !payload.kelas || (!id && !payload.nis)){ toast("Nama, Kelas, dan NIS wajib diisi.", "error"); return; }
+    try{
+      if (id){ await sbPatch(`siswa?id=eq.${id}`, payload); toast("Data siswa berhasil diperbarui."); await logActivity(`Mengubah data siswa ${payload.nama}`); }
+      else { await sbPost("siswa", payload); toast("Siswa baru berhasil ditambahkan."); await logActivity(`Menambahkan siswa baru ${payload.nama}`); }
+      closeModal(); await refreshAllData(); drawSiswaTable();
+    }catch(err){ toast(err.message, "error", "Gagal Menyimpan"); }
+  };
+  openModal();
+}
+function openSiswaDetail(id){
+  const s = CACHE.siswa.find(x=>x.id===id);
+  const riwayat = CACHE.riwayat.filter(r=>r.siswa_id===id);
+  const totalPoin = riwayat.reduce((a,r)=>a+(r.jenis_pelanggaran?r.jenis_pelanggaran.poin:0),0);
+  document.getElementById("modalTitle").textContent = "Rekap Siswa: " + s.nama;
+  document.getElementById("modalBody").innerHTML = `
+    <div style="display:flex;gap:14px;margin-bottom:16px;align-items:center">
+      <div class="avatar" style="width:52px;height:52px;background:var(--blue-100);color:var(--blue-700);font-size:18px">${s.nama.split(" ").map(x=>x[0]).slice(0,2).join("")}</div>
+      <div><b style="font-size:15px">${esc(s.nama)}</b><div class="text-soft" style="font-size:12.5px">NIS ${esc(s.nis)} · Kelas ${esc(s.kelas)}</div></div>
+      <div style="margin-left:auto;text-align:right"><div style="font-family:'Sora';font-size:22px;font-weight:800;color:var(--blue-600)">${totalPoin}</div><div class="text-soft" style="font-size:11px">Total Poin</div></div>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th></tr></thead>
+      <tbody>${riwayat.length? riwayat.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td><span class="badge red">${r.jenis_pelanggaran?.poin}</span></td><td>${esc(r.guru?.nama)}</td></tr>`).join("") : `<tr><td colspan="4" class="text-soft">Belum ada catatan pelanggaran.</td></tr>`}</tbody>
+    </table></div>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mClose2">Tutup</button><button class="btn btn-primary" id="mPrint2"><span class="msr">print</span> Cetak PDF</button>`;
+  document.getElementById("mClose2").onclick = closeModal;
+  document.getElementById("mPrint2").onclick = ()=> printStudentReport(s, riwayat, totalPoin);
+  openModal();
+}
+function confirmDeleteSiswa(id){
+  const s = CACHE.siswa.find(x=>x.id===id);
+  openConfirm(`Hapus siswa "${s.nama}"?`, "Semua riwayat pelanggaran siswa ini juga akan terhapus.", async ()=>{
+    await sbDelete(`siswa?id=eq.${id}`);
+    toast("Siswa berhasil dihapus.");
+    await logActivity(`Menghapus siswa ${s.nama}`);
+    await refreshAllData(); drawSiswaTable();
+  });
+}
+
+/* =========================================================
+   IMPORT / EXPORT EXCEL - DATA SISWA
+========================================================= */
+const SISWA_EXCEL_COLUMNS = ["NIS","NISN","Nama","Jenis Kelamin (L/P)","Tempat Lahir","Tanggal Lahir (YYYY-MM-DD)","Agama","Alamat","Nama Orang Tua","No. HP Orang Tua","Kelas"];
+
+function exportSiswaExcel(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const rows = CACHE.siswa.map(s=>({
+    "NIS": s.nis||"", "NISN": s.nisn||"", "Nama": s.nama||"", "Jenis Kelamin (L/P)": s.jenis_kelamin||"",
+    "Tempat Lahir": s.tempat_lahir||"", "Tanggal Lahir (YYYY-MM-DD)": s.tanggal_lahir||"", "Agama": s.agama||"",
+    "Alamat": s.alamat||"", "Nama Orang Tua": s.nama_ortu||"", "No. HP Orang Tua": s.hp_ortu||"", "Kelas": s.kelas||""
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows, {header: SISWA_EXCEL_COLUMNS});
+  ws["!cols"] = SISWA_EXCEL_COLUMNS.map(c=>({wch: Math.max(12, c.length)}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data Siswa");
+  XLSX.writeFile(wb, `Data_Siswa_SMPN3_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast(`${rows.length} data siswa berhasil diexport ke Excel.`);
+}
+
+function downloadTemplateSiswa(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const contoh = [{
+    "NIS":"2024099","NISN":"0051239999","Nama":"Contoh Nama Siswa","Jenis Kelamin (L/P)":"L",
+    "Tempat Lahir":"Lampung","Tanggal Lahir (YYYY-MM-DD)":"2011-05-14","Agama":"Islam",
+    "Alamat":"Jl. Contoh No.1","Nama Orang Tua":"Contoh Nama Ortu","No. HP Orang Tua":"081200000000","Kelas":"VII-A"
+  }];
+  const ws = XLSX.utils.json_to_sheet(contoh, {header: SISWA_EXCEL_COLUMNS});
+  ws["!cols"] = SISWA_EXCEL_COLUMNS.map(c=>({wch: Math.max(14, c.length)}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template Siswa");
+  XLSX.writeFile(wb, "Template_Import_Data_Siswa.xlsx");
+  toast("Template Excel berhasil diunduh. Isi datanya lalu import kembali.");
+}
+
+function excelValueToISODate(v){
+  if (v===null || v===undefined || v==="") return null;
+  if (v instanceof Date && !isNaN(v)) return v.toISOString().slice(0,10);
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  const d = new Date(s);
+  if (!isNaN(d)) return d.toISOString().slice(0,10);
+  return null;
+}
+function findColValue(row, ...aliases){
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g,"");
+  const target = aliases.map(norm);
+  for (const key of Object.keys(row)){
+    if (target.includes(norm(key))) return row[key];
+  }
+  return "";
+}
+function normalizeSiswaRow(row){
+  return {
+    nis: String(findColValue(row,"NIS")).trim(),
+    nisn: String(findColValue(row,"NISN")).trim(),
+    nama: String(findColValue(row,"Nama","NamaLengkap")).trim(),
+    jenis_kelamin: String(findColValue(row,"JenisKelamin","JenisKelaminLP","JK","L/P")).trim().toUpperCase().slice(0,1),
+    tempat_lahir: String(findColValue(row,"TempatLahir")).trim(),
+    tanggal_lahir: excelValueToISODate(findColValue(row,"TanggalLahir","TanggalLahirYYYYMMDD")),
+    agama: String(findColValue(row,"Agama")).trim(),
+    alamat: String(findColValue(row,"Alamat")).trim(),
+    nama_ortu: String(findColValue(row,"NamaOrangTua","NamaOrtu")).trim(),
+    hp_ortu: String(findColValue(row,"NoHPOrangTua","HPOrtu","NoHP","NoHPOrtu")).trim(),
+    kelas: String(findColValue(row,"Kelas")).trim(),
+  };
+}
+
+async function handleImportSiswaFile(e){
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:"array", cellDates:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+      if (!rawRows.length){ toast("File Excel kosong atau format kolom tidak dikenali.", "error"); return; }
+      openImportPreview(rawRows);
+    }catch(err){ toast("Gagal membaca file: " + err.message, "error"); }
+  };
+  reader.onerror = ()=> toast("Gagal membaca file Excel.", "error");
+  reader.readAsArrayBuffer(file);
+}
+
+function openImportPreview(rawRows){
+  const mapped = rawRows.map(normalizeSiswaRow);
+  const valid = mapped.filter(r=>r.nis && r.nama && r.kelas);
+  const invalidCount = mapped.length - valid.length;
+  document.getElementById("modalTitle").textContent = "Preview Import Data Siswa";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="point-preview" style="margin-bottom:14px;flex-wrap:wrap">
+      <span class="msr">description</span> ${valid.length} baris siap diimport
+      ${invalidCount>0 ? `<span style="color:var(--danger);font-weight:700;margin-left:6px">· ${invalidCount} baris dilewati (NIS/Nama/Kelas kosong)</span>` : ""}
+    </div>
+    <div class="table-wrap" style="max-height:320px;overflow-y:auto"><table>
+      <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Ortu</th></tr></thead>
+      <tbody>${valid.slice(0,80).map(r=>`<tr><td>${esc(r.nis)}</td><td>${esc(r.nama)}</td><td>${esc(r.kelas)}</td><td>${esc(r.jenis_kelamin)}</td><td>${esc(r.nama_ortu)||"-"}</td></tr>`).join("") || `<tr><td colspan="5" class="text-soft">Tidak ada baris valid untuk diimport.</td></tr>`}</tbody>
+    </table></div>
+    ${valid.length>80 ? `<p class="text-soft" style="font-size:12px;margin-top:8px">Menampilkan 80 dari ${valid.length} baris valid.</p>` : ""}
+    <p class="text-soft" style="font-size:12px;margin-top:10px">Siswa dengan NIS yang sudah terdaftar akan diperbarui datanya (bukan diduplikasi). Data siswa lain yang tidak ada di file ini tidak akan dihapus.</p>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mImport" ${valid.length===0?"disabled":""}><span class="msr">upload</span> Import ${valid.length} Siswa</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mImport").onclick = async ()=>{
+    const btn = document.getElementById("mImport");
+    btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Mengimport...';
+    try{
+      await sb("siswa?on_conflict=nis", {method:"POST", headers:{"Prefer":"resolution=merge-duplicates,return=representation"}, body: JSON.stringify(valid)});
+      toast(`${valid.length} data siswa berhasil diimport.`);
+      await logActivity(`Import ${valid.length} data siswa dari Excel`);
+      closeModal();
+      await refreshAllData();
+      if (ACTIVE_PAGE === "siswa") renderSiswa();
+    }catch(err){
+      toast(err.message, "error", "Gagal Import");
+      btn.disabled = false; btn.innerHTML = `<span class="msr">upload</span> Import ${valid.length} Siswa`;
+    }
+  };
+  openModal();
+}
+function renderJenis(){
+  const kategoriList = [...new Set(CACHE.jenis.map(j=>j.kategori))];
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <h3 class="mb-0">Master Jenis Pelanggaran</h3>
+        <button class="btn btn-primary btn-sm" id="addJenisBtn"><span class="msr">add</span> Tambah Jenis</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Kode</th><th>Nama Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Keterangan</th><th></th></tr></thead>
+        <tbody>
+        ${CACHE.jenis.map(j=>`<tr>
+          <td>${esc(j.kode)}</td><td><b>${esc(j.nama)}</b></td><td><span class="badge blue">${esc(j.kategori)}</span></td>
+          <td><span class="badge red">${j.poin}</span></td><td class="text-soft">${esc(j.keterangan||"-")}</td>
+          <td><button class="act-btn" onclick="openJenisModal(${j.id})"><span class="msr">edit</span></button>
+              <button class="act-btn danger" onclick="confirmDeleteJenis(${j.id})"><span class="msr">delete</span></button></td>
+        </tr>`).join("") || `<tr><td colspan="6"><div class="empty-state"><span class="msr">rule</span><div>Belum ada jenis pelanggaran.</div></div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+  `;
+  document.getElementById("addJenisBtn").addEventListener("click", ()=>openJenisModal());
+}
+function openJenisModal(id=null){
+  const j = id ? CACHE.jenis.find(x=>x.id===id) : {};
+  document.getElementById("modalTitle").textContent = id ? "Edit Jenis Pelanggaran" : "Tambah Jenis Pelanggaran";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="form-grid">
+      <div class="form-field"><label>Kode</label><input id="f_kode" value="${esc(j.kode)}"></div>
+      <div class="form-field"><label>Poin</label><input type="number" id="f_poin" value="${j.poin||5}"></div>
+      <div class="form-field full"><label>Nama Pelanggaran</label><input id="f_namaJ" value="${esc(j.nama)}"></div>
+      <div class="form-field full"><label>Kategori</label><select id="f_kategori">
+        ${["Kedisiplinan","Seragam","Kehadiran","Etika","Kebersihan","Akademik"].map(k=>`<option ${j.kategori===k?"selected":""}>${k}</option>`).join("")}
+      </select></div>
+      <div class="form-field full"><label>Keterangan</label><textarea id="f_ket" rows="2">${esc(j.keterangan)}</textarea></div>
+    </div>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mSave"><span class="msr">save</span> Simpan</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = async ()=>{
+    const payload = { kode: document.getElementById("f_kode").value.trim(), nama: document.getElementById("f_namaJ").value.trim(), kategori: document.getElementById("f_kategori").value, poin: parseInt(document.getElementById("f_poin").value||0), keterangan: document.getElementById("f_ket").value.trim() };
+    if (!payload.kode || !payload.nama){ toast("Kode dan nama wajib diisi.", "error"); return; }
+    try{
+      await adminRpc("admin_jenis_upsert", {p_id:id, p_kode:payload.kode, p_nama:payload.nama, p_kategori:payload.kategori, p_poin:payload.poin, p_keterangan:payload.keterangan});
+      toast(id ? "Jenis pelanggaran diperbarui." : "Jenis pelanggaran ditambahkan.");
+      closeModal(); await refreshAllData(); renderJenis();
+    }catch(err){ toast(err.message, "error", "Gagal Menyimpan"); }
+  };
+  openModal();
+}
+function confirmDeleteJenis(id){
+  const j = CACHE.jenis.find(x=>x.id===id);
+  openConfirm(`Hapus jenis pelanggaran "${j.nama}"?`, "Riwayat yang memakai jenis ini akan tetap ada namun kehilangan referensi.", async ()=>{
+    try{ await adminRpc("admin_jenis_delete", {p_id:id}); toast("Jenis pelanggaran dihapus."); await refreshAllData(); renderJenis(); }
+    catch(err){ toast(err.message, "error"); }
+  });
+}
+
+/* =========================================================
+   MANAJEMEN GURU (Admin)
+========================================================= */
+function renderGuru(){
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <h3 class="mb-0">Akun Guru & Hak Akses</h3>
+        <button class="btn btn-primary btn-sm" id="addGuruBtn"><span class="msr">person_add</span> Tambah Guru</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Nama</th><th>NIP</th><th>Username</th><th>Jabatan</th><th>Kelas Diampu</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        ${CACHE.guru.map(g=>`<tr>
+          <td><b>${esc(g.nama)}</b></td><td>${esc(g.nip||"-")}</td><td>${esc(g.username)}</td>
+          <td><span class="badge ${g.jabatan==='Admin'?'blue':'gray'}">${esc(g.jabatan)}</span></td>
+          <td>${esc(g.kelas_diampu||"-")}</td>
+          <td><span class="badge ${g.aktif?'green':'red'}">${g.aktif?'Aktif':'Nonaktif'}</span></td>
+          <td><button class="act-btn" onclick="openGuruModal(${g.id})"><span class="msr">edit</span></button>
+              <button class="act-btn danger" onclick="confirmDeleteGuru(${g.id})"><span class="msr">delete</span></button></td>
+        </tr>`).join("") || `<tr><td colspan="7"><div class="empty-state"><span class="msr">badge</span><div>Belum ada akun guru.</div></div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+  `;
+  document.getElementById("addGuruBtn").addEventListener("click", ()=>openGuruModal());
+}
+function openGuruModal(id=null){
+  const g = id ? CACHE.guru.find(x=>x.id===id) : {};
+  document.getElementById("modalTitle").textContent = id ? "Edit Akun Guru" : "Tambah Akun Guru";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="form-grid">
+      <div class="form-field full"><label>Nama Lengkap</label><input id="f_namaG" value="${esc(g.nama)}"></div>
+      <div class="form-field"><label>NIP</label><input id="f_nip" value="${esc(g.nip)}"></div>
+      <div class="form-field"><label>Username</label><input id="f_username" value="${esc(g.username)}" ${id?"disabled":""}></div>
+      <div class="form-field"><label>Password ${id?'(kosongkan jika tidak diubah)':''}</label><input type="password" id="f_password" placeholder="${id?'••••••••':'Password baru'}"></div>
+      <div class="form-field"><label>Jabatan</label><select id="f_jabatan">
+        <option value="Guru BK" ${g.jabatan==='Guru BK'?'selected':''}>Guru BK</option>
+        <option value="Wali Kelas" ${g.jabatan==='Wali Kelas'?'selected':''}>Wali Kelas</option>
+        <option value="Admin" ${g.jabatan==='Admin'?'selected':''}>Admin</option>
+      </select></div>
+      <div class="form-field" id="kelasDiampuWrap"><label>Kelas Diampu</label><input id="f_kelasDiampu" value="${esc(g.kelas_diampu)}" placeholder="cth: VIII-B"></div>
+      <div class="form-field"><label>Status</label><select id="f_aktif"><option value="true" ${g.aktif!==false?'selected':''}>Aktif</option><option value="false" ${g.aktif===false?'selected':''}>Nonaktif</option></select></div>
+    </div>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mSave"><span class="msr">save</span> Simpan</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = async ()=>{
+    const nama = document.getElementById("f_namaG").value.trim();
+    const username = document.getElementById("f_username").value.trim();
+    const password = document.getElementById("f_password").value;
+    const jabatan = document.getElementById("f_jabatan").value;
+    const kelas_diampu = jabatan==="Wali Kelas" ? document.getElementById("f_kelasDiampu").value.trim() : null;
+    const aktif = document.getElementById("f_aktif").value === "true";
+    const nip = document.getElementById("f_nip").value.trim();
+    if (!nama || !username || (!id && !password)){ toast("Nama, username, dan password wajib diisi.", "error"); return; }
+    try{
+      if (id){
+        await adminRpc("admin_update_guru", {p_id:id, p_nama:nama, p_nip:nip, p_jabatan:jabatan, p_kelas:kelas_diampu, p_aktif:aktif});
+        if (password){ await adminRpc("admin_reset_guru_password", {p_id:id, p_password:password}); }
+        toast("Akun guru diperbarui.");
+      } else {
+        await adminRpc("admin_create_guru", {p_nama:nama, p_nip:nip, p_username:username, p_password:password, p_jabatan:jabatan, p_kelas:kelas_diampu});
+        toast("Akun guru berhasil dibuat.");
+      }
+      closeModal(); await refreshAllData(); renderGuru();
+    }catch(err){ toast(err.message, "error", "Gagal Menyimpan"); }
+  };
+  openModal();
+  document.getElementById("f_jabatan").addEventListener("change", (e)=>{
+    document.getElementById("kelasDiampuWrap").style.display = e.target.value==="Wali Kelas" ? "block":"none";
+  });
+  document.getElementById("kelasDiampuWrap").style.display = (document.getElementById("f_jabatan").value==="Wali Kelas") ? "block":"none";
+}
+function confirmDeleteGuru(id){
+  const g = CACHE.guru.find(x=>x.id===id);
+  if (g.username==="admin"){ toast("Akun admin utama tidak dapat dihapus.", "error"); return; }
+  openConfirm(`Hapus akun "${g.nama}"?`, "Akun ini tidak akan bisa login lagi setelah dihapus.", async ()=>{
+    try{ await adminRpc("admin_delete_guru", {p_id:id}); toast("Akun guru dihapus."); await refreshAllData(); renderGuru(); }
+    catch(err){ toast(err.message, "error"); }
+  });
+}
+
+/* =========================================================
+   INPUT PELANGGARAN
+========================================================= */
+function renderInput(){
+  const siswaOptions = visibleSiswa();
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel" style="max-width:640px">
+      <h3 style="margin-top:0">Form Input Pelanggaran</h3>
+      <div class="form-grid">
+        <div class="form-field"><label>Tanggal</label><input type="date" id="in_tanggal" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="form-field"><label>Kelas</label><select id="in_kelas"></select></div>
+        <div class="form-field full"><label>Nama Siswa</label><select id="in_siswa"></select></div>
+        <div class="form-field full"><label>Jenis Pelanggaran</label><select id="in_jenis">
+          ${CACHE.jenis.map(j=>`<option value="${j.id}" data-poin="${j.poin}">${esc(j.nama)} (${esc(j.kategori)})</option>`).join("")}
+        </select></div>
+        <div class="form-field full"><div class="point-preview"><span class="msr">bolt</span> Poin yang akan ditambahkan: <span id="poinPreview">0</span></div></div>
+        <div class="form-field full"><label>Catatan Tambahan</label><textarea id="in_catatan" rows="3" placeholder="Opsional..."></textarea></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px">
+        <button class="btn btn-primary" id="in_simpan"><span class="msr">save</span> Simpan Pelanggaran</button>
+        <button class="btn btn-ghost" id="in_reset"><span class="msr">restart_alt</span> Reset</button>
+      </div>
+    </div>
+  `;
+  const kelasSel = document.getElementById("in_kelas");
+  const kelasList = CURRENT_USER.jabatan==="Wali Kelas" ? [CURRENT_USER.kelas_diampu] : [...new Set(siswaOptions.map(s=>s.kelas))].sort();
+  kelasSel.innerHTML = kelasList.map(k=>`<option>${esc(k)}</option>`).join("");
+  function refreshSiswaSelect(){
+    const kelas = kelasSel.value;
+    const opts = siswaOptions.filter(s=>s.kelas===kelas);
+    document.getElementById("in_siswa").innerHTML = opts.map(s=>`<option value="${s.id}">${esc(s.nama)} (${esc(s.nis)})</option>`).join("") || `<option disabled>Tidak ada siswa di kelas ini</option>`;
+  }
+  kelasSel.addEventListener("change", refreshSiswaSelect);
+  refreshSiswaSelect();
+  function updatePreview(){
+    const sel = document.getElementById("in_jenis");
+    const poin = sel.options[sel.selectedIndex]?.dataset.poin || 0;
+    document.getElementById("poinPreview").textContent = poin;
+  }
+  document.getElementById("in_jenis").addEventListener("change", updatePreview);
+  updatePreview();
+  document.getElementById("in_reset").addEventListener("click", renderInput);
+  document.getElementById("in_simpan").addEventListener("click", async ()=>{
+    const siswa_id = parseInt(document.getElementById("in_siswa").value);
+    const jenis_pelanggaran_id = parseInt(document.getElementById("in_jenis").value);
+    const tanggal = document.getElementById("in_tanggal").value;
+    const catatan = document.getElementById("in_catatan").value.trim();
+    if (!siswa_id || !jenis_pelanggaran_id || !tanggal){ toast("Lengkapi seluruh data wajib.", "error"); return; }
+    const btn = document.getElementById("in_simpan");
+    btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Menyimpan...';
+    try{
+      await sbPost("riwayat_pelanggaran", { siswa_id, jenis_pelanggaran_id, tanggal, catatan, guru_id: CURRENT_USER.id });
+      const s = CACHE.siswa.find(x=>x.id===siswa_id);
+      toast(`Pelanggaran untuk ${s?s.nama:'siswa'} berhasil dicatat.`);
+      await logActivity(`Mencatat pelanggaran untuk ${s?s.nama:''}`);
+      await refreshAllData();
+      renderInput();
+    }catch(err){ toast(err.message, "error", "Gagal Menyimpan"); }
+    finally{ btn.disabled=false; btn.innerHTML = '<span class="msr">save</span> Simpan Pelanggaran'; }
+  });
+}
+
+/* =========================================================
+   RIWAYAT
+========================================================= */
+let riwayatState = {page:1, perPage:10, q:"", kelas:"", dari:"", sampai:""};
+function renderRiwayat(){
+  const kelasList = [...new Set(visibleSiswa().map(s=>s.kelas))].sort();
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="toolbar">
+          <div class="search-box"><span class="msr">search</span><input id="rwSearch" placeholder="Cari nama siswa..." value="${esc(riwayatState.q)}"></div>
+          <select class="sel" id="rwKelas"><option value="">Semua Kelas</option>${kelasList.map(k=>`<option ${k===riwayatState.kelas?"selected":""}>${k}</option>`).join("")}</select>
+          <input type="date" class="sel" id="rwDari" value="${riwayatState.dari}">
+          <input type="date" class="sel" id="rwSampai" value="${riwayatState.sampai}">
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th><th></th></tr></thead>
+        <tbody id="rwTbody"></tbody>
+      </table></div>
+      <div class="pagi" id="rwPagi"></div>
+    </div>
+  `;
+  ["rwSearch","rwKelas","rwDari","rwSampai"].forEach(id=>{
+    document.getElementById(id).addEventListener("input", syncRwState);
+    document.getElementById(id).addEventListener("change", syncRwState);
+  });
+  function syncRwState(){
+    riwayatState.q = document.getElementById("rwSearch").value;
+    riwayatState.kelas = document.getElementById("rwKelas").value;
+    riwayatState.dari = document.getElementById("rwDari").value;
+    riwayatState.sampai = document.getElementById("rwSampai").value;
+    riwayatState.page = 1;
+    drawRiwayatTable();
+  }
+  drawRiwayatTable();
+}
+function filteredRiwayat(state){
+  return visibleRiwayat().filter(r=>{
+    if (state.q && !(r.siswa && r.siswa.nama.toLowerCase().includes(state.q.toLowerCase()))) return false;
+    if (state.kelas && (!r.siswa || r.siswa.kelas!==state.kelas)) return false;
+    if (state.dari && r.tanggal < state.dari) return false;
+    if (state.sampai && r.tanggal > state.sampai) return false;
+    return true;
+  });
+}
+function drawRiwayatTable(){
+  const rows = filteredRiwayat(riwayatState);
+  const totalPages = Math.max(1, Math.ceil(rows.length/riwayatState.perPage));
+  riwayatState.page = Math.min(riwayatState.page, totalPages);
+  const pageRows = paginate(rows, riwayatState.page, riwayatState.perPage);
+  document.getElementById("rwTbody").innerHTML = pageRows.length ? pageRows.map(r=>`
+    <tr>
+      <td>${fmtDate(r.tanggal)}</td><td><b>${esc(r.siswa?.nama)}</b></td><td>${esc(r.siswa?.kelas)}</td>
+      <td>${esc(r.jenis_pelanggaran?.nama)}</td><td><span class="badge red">${r.jenis_pelanggaran?.poin||0}</span></td>
+      <td class="text-soft">${esc(r.guru?.nama)}</td>
+      <td><button class="act-btn danger" title="Hapus" onclick="confirmDeleteRiwayat(${r.id})"><span class="msr">delete</span></button></td>
+    </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state"><span class="msr">event_busy</span><div>Tidak ada riwayat sesuai filter.</div></div></td></tr>`;
+  document.getElementById("rwPagi").innerHTML = `
+    <span>Menampilkan ${pageRows.length} dari ${rows.length} catatan</span>
+    <div class="pagi-btns">
+      <button class="act-btn" ${riwayatState.page<=1?"disabled":""} onclick="riwayatState.page--;drawRiwayatTable()"><span class="msr">chevron_left</span></button>
+      <span style="padding:0 6px">${riwayatState.page}/${totalPages}</span>
+      <button class="act-btn" ${riwayatState.page>=totalPages?"disabled":""} onclick="riwayatState.page++;drawRiwayatTable()"><span class="msr">chevron_right</span></button>
+    </div>`;
+}
+function confirmDeleteRiwayat(id){
+  openConfirm("Hapus catatan pelanggaran ini?", "Tindakan ini tidak dapat dibatalkan.", async ()=>{
+    await sbDelete(`riwayat_pelanggaran?id=eq.${id}`); toast("Catatan dihapus."); await refreshAllData();
+    if (ACTIVE_PAGE==="riwayat") drawRiwayatTable(); else if(ACTIVE_PAGE==="laporan") drawLaporanTable();
+  });
+}
+
+/* =========================================================
+   LAPORAN (mirip riwayat tapi dengan cetak)
+========================================================= */
+let laporanState = {kelas:"", dari:"", sampai:"", siswa:""};
+function renderLaporan(){
+  const siswaList = visibleSiswa();
+  const kelasList = [...new Set(siswaList.map(s=>s.kelas))].sort();
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel no-print">
+      <div class="panel-head">
+        <div class="toolbar">
+          <select class="sel" id="lpKelas"><option value="">Semua Kelas</option>${kelasList.map(k=>`<option ${k===laporanState.kelas?"selected":""}>${k}</option>`).join("")}</select>
+          <select class="sel" id="lpSiswa"><option value="">Semua Siswa</option>${siswaList.map(s=>`<option value="${s.id}">${esc(s.nama)}</option>`).join("")}</select>
+          <input type="date" class="sel" id="lpDari" value="${laporanState.dari}">
+          <input type="date" class="sel" id="lpSampai" value="${laporanState.sampai}">
+        </div>
+        <button class="btn btn-primary btn-sm" id="lpPrintBtn"><span class="msr">print</span> Cetak / Export PDF</button>
+      </div>
+      <div id="lpSummary"></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th></tr></thead>
+        <tbody id="lpTbody"></tbody>
+      </table></div>
+    </div>
+  `;
+  ["lpKelas","lpSiswa","lpDari","lpSampai"].forEach(id=>{
+    document.getElementById(id).addEventListener("change", syncLp);
+  });
+  function syncLp(){
+    laporanState.kelas = document.getElementById("lpKelas").value;
+    laporanState.siswa = document.getElementById("lpSiswa").value;
+    laporanState.dari = document.getElementById("lpDari").value;
+    laporanState.sampai = document.getElementById("lpSampai").value;
+    drawLaporanTable();
+  }
+  document.getElementById("lpPrintBtn").addEventListener("click", ()=>{
+    const rows = filteredLaporanRows();
+    const totalPoin = rows.reduce((a,r)=>a+(r.jenis_pelanggaran?.poin||0),0);
+    printLaporanRekap(rows, totalPoin);
+  });
+  drawLaporanTable();
+}
+function filteredLaporanRows(){
+  return visibleRiwayat().filter(r=>{
+    if (laporanState.kelas && (!r.siswa||r.siswa.kelas!==laporanState.kelas)) return false;
+    if (laporanState.siswa && String(r.siswa_id)!==String(laporanState.siswa)) return false;
+    if (laporanState.dari && r.tanggal < laporanState.dari) return false;
+    if (laporanState.sampai && r.tanggal > laporanState.sampai) return false;
+    return true;
+  });
+}
+function drawLaporanTable(){
+  const rows = filteredLaporanRows();
+  const totalPoin = rows.reduce((a,r)=>a+(r.jenis_pelanggaran?.poin||0),0);
+  document.getElementById("lpSummary").innerHTML = `
+    <div class="grid-cards" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi-card"><div class="ico"><span class="msr">fact_check</span></div><div class="val">${rows.length}</div><div class="lbl">Total Catatan</div></div>
+      <div class="kpi-card"><div class="ico"><span class="msr">bolt</span></div><div class="val">${totalPoin}</div><div class="lbl">Total Poin</div></div>
+      <div class="kpi-card"><div class="ico"><span class="msr">groups</span></div><div class="val">${new Set(rows.map(r=>r.siswa_id)).size}</div><div class="lbl">Siswa Terlibat</div></div>
+    </div>`;
+  document.getElementById("lpTbody").innerHTML = rows.length ? rows.map(r=>`
+    <tr><td>${fmtDate(r.tanggal)}</td><td><b>${esc(r.siswa?.nama)}</b></td><td>${esc(r.siswa?.kelas)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td>${r.jenis_pelanggaran?.poin||0}</td><td>${esc(r.guru?.nama)}</td></tr>
+  `).join("") : `<tr><td colspan="6"><div class="empty-state"><span class="msr">summarize</span><div>Tidak ada data untuk filter ini.</div></div></td></tr>`;
+}
+
+/* =========================================================
+   DATA SEKOLAH (Admin)
+========================================================= */
+function renderSekolah(){
+  const s = CACHE.sekolah || {};
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel" style="max-width:640px">
+      <h3 style="margin-top:0">Logo Sekolah</h3>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+        <div id="logoPreviewWrap" style="width:76px;height:76px;border-radius:14px;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface-2);flex-shrink:0">
+          ${s.logo_url ? `<img src="${esc(s.logo_url)}" style="width:100%;height:100%;object-fit:contain">` : `<span class="msr" style="font-size:26px;color:var(--ink-soft)">image</span>`}
+        </div>
+        <div style="flex:1">
+          <input type="file" id="logoFileInput" accept="image/*" style="display:none">
+          <button class="btn btn-ghost btn-sm" id="logoUploadBtn"><span class="msr">upload</span> ${s.logo_url ? "Ganti Logo" : "Upload Logo"}</button>
+          ${s.logo_url ? `<button class="btn btn-ghost btn-sm" id="logoRemoveBtn"><span class="msr">delete</span> Hapus</button>` : ""}
+          <div class="text-soft" style="font-size:11.5px;margin-top:6px">Format PNG/JPG, maksimal 2MB. Logo ini otomatis muncul di halaman login, sidebar, dan kop surat laporan.</div>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0">
+      <h3 style="margin-top:0">Identitas Sekolah</h3>
+      <div class="form-grid">
+        <div class="form-field full"><label>Nama Sekolah</label><input id="sk_nama" value="${esc(s.nama_sekolah)}"></div>
+        <div class="form-field"><label>NPSN</label><input id="sk_npsn" value="${esc(s.npsn)}"></div>
+        <div class="form-field"><label>Telepon</label><input id="sk_telp" value="${esc(s.telepon)}"></div>
+        <div class="form-field full"><label>Alamat</label><input id="sk_alamat" value="${esc(s.alamat)}"></div>
+        <div class="form-field"><label>Email</label><input id="sk_email" value="${esc(s.email)}"></div>
+        <div class="form-field"><label>Website</label><input id="sk_web" value="${esc(s.website)}"></div>
+      </div>
+      <button class="btn btn-primary" id="sk_save" style="margin-top:16px"><span class="msr">save</span> Simpan Perubahan</button>
+    </div>
+  `;
+  document.getElementById("logoUploadBtn").addEventListener("click", ()=> document.getElementById("logoFileInput").click());
+  document.getElementById("logoFileInput").addEventListener("change", async (e)=>{
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const btn = document.getElementById("logoUploadBtn");
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Mengupload...';
+    try{
+      const url = await uploadImageToStorage(file, "logo");
+      await adminRpc("admin_update_sekolah", {p_payload: {logo_url: url}});
+      toast("Logo sekolah berhasil diperbarui.");
+      await logActivity("Mengubah logo sekolah");
+      await refreshAllData();
+      renderSekolah();
+    }catch(err){ toast(err.message, "error", "Gagal Upload"); btn.disabled=false; btn.innerHTML=orig; }
+  });
+  const removeBtn = document.getElementById("logoRemoveBtn");
+  if (removeBtn) removeBtn.addEventListener("click", ()=>{
+    openConfirm("Hapus logo sekolah?", "Logo akan dikembalikan ke tampilan default.", async ()=>{
+      try{ await adminRpc("admin_update_sekolah", {p_payload: {logo_url:null}}); toast("Logo sekolah dihapus."); await refreshAllData(); renderSekolah(); }
+      catch(err){ toast(err.message, "error"); }
+    });
+  });
+  document.getElementById("sk_save").addEventListener("click", async ()=>{
+    const payload = { nama_sekolah:document.getElementById("sk_nama").value.trim(), npsn:document.getElementById("sk_npsn").value.trim(), telepon:document.getElementById("sk_telp").value.trim(), alamat:document.getElementById("sk_alamat").value.trim(), email:document.getElementById("sk_email").value.trim(), website:document.getElementById("sk_web").value.trim() };
+    try{ await adminRpc("admin_update_sekolah", {p_payload: payload}); toast("Data sekolah diperbarui."); await refreshAllData(); }
+    catch(err){ toast(err.message, "error"); }
+  });
+}
+
+/* =========================================================
+   TAHUN & SEMESTER (Admin)
+========================================================= */
+function renderSemester(){
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <h3 class="mb-0">Daftar Tahun Pelajaran & Semester</h3>
+        <button class="btn btn-primary btn-sm" id="addSemesterBtn"><span class="msr">add</span> Tambah Tahun/Semester</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tahun Pelajaran</th><th>Semester</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        ${CACHE.semester.map(sm=>`<tr>
+          <td><b>${esc(sm.tahun_pelajaran)}</b></td>
+          <td><span class="badge blue">${esc(sm.semester)}</span></td>
+          <td>${sm.aktif ? `<span class="badge green">Semester Berjalan</span>` : `<span class="badge gray">Nonaktif</span>`}</td>
+          <td>
+            ${!sm.aktif ? `<button class="act-btn" title="Aktifkan" onclick="aktifkanSemester(${sm.id})"><span class="msr">check_circle</span></button>` : ""}
+            <button class="act-btn" title="Edit" onclick="openSemesterModal(${sm.id})"><span class="msr">edit</span></button>
+            <button class="act-btn danger" title="Hapus" onclick="confirmDeleteSemester(${sm.id})"><span class="msr">delete</span></button>
+          </td>
+        </tr>`).join("") || `<tr><td colspan="4"><div class="empty-state"><span class="msr">event_repeat</span><div>Belum ada data tahun pelajaran.</div></div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+  `;
+  document.getElementById("addSemesterBtn").addEventListener("click", ()=>openSemesterModal());
+}
+function openSemesterModal(id=null){
+  const sm = id ? CACHE.semester.find(x=>x.id===id) : {};
+  document.getElementById("modalTitle").textContent = id ? "Edit Tahun Pelajaran" : "Tambah Tahun Pelajaran";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="form-grid">
+      <div class="form-field full"><label>Tahun Pelajaran</label><input id="f_tahun" value="${esc(sm.tahun_pelajaran)}" placeholder="cth: 2026/2027"></div>
+      <div class="form-field full"><label>Semester</label><select id="f_smt">
+        <option value="Ganjil" ${sm.semester==='Ganjil'?'selected':''}>Ganjil</option>
+        <option value="Genap" ${sm.semester==='Genap'?'selected':''}>Genap</option>
+      </select></div>
+    </div>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mSave"><span class="msr">save</span> Simpan</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = async ()=>{
+    const payload = { tahun_pelajaran: document.getElementById("f_tahun").value.trim(), semester: document.getElementById("f_smt").value };
+    if (!payload.tahun_pelajaran){ toast("Tahun pelajaran wajib diisi.", "error"); return; }
+    try{
+      await adminRpc("admin_semester_upsert", {p_id: id, p_tahun: payload.tahun_pelajaran, p_semester: payload.semester});
+      toast(id ? "Data semester diperbarui." : "Tahun/semester baru ditambahkan.");
+      closeModal(); await refreshAllData(); renderSemester();
+    }catch(err){ toast(err.message, "error", "Gagal Menyimpan"); }
+  };
+  openModal();
+}
+async function aktifkanSemester(id){
+  const sm = CACHE.semester.find(x=>x.id===id);
+  openConfirm(`Aktifkan ${sm.tahun_pelajaran} - ${sm.semester}?`, "Semester lain yang sedang berjalan akan otomatis dinonaktifkan.", async ()=>{
+    try{
+      await adminRpc("admin_semester_activate", {p_id: id});
+      toast(`${sm.tahun_pelajaran} - ${sm.semester} kini menjadi semester berjalan.`);
+      await logActivity(`Mengaktifkan semester ${sm.tahun_pelajaran} - ${sm.semester}`);
+      await refreshAllData(); renderSemester();
+    }catch(err){ toast(err.message, "error"); }
+  });
+}
+function confirmDeleteSemester(id){
+  const sm = CACHE.semester.find(x=>x.id===id);
+  openConfirm(`Hapus ${sm.tahun_pelajaran} - ${sm.semester}?`, "Tindakan ini tidak dapat dibatalkan.", async ()=>{
+    try{ await adminRpc("admin_semester_delete", {p_id: id}); toast("Data dihapus."); await refreshAllData(); renderSemester(); }
+    catch(err){ toast(err.message, "error"); }
+  });
+}
+
+/* =========================================================
+   PENGATURAN CETAK (Admin)
+========================================================= */
+function renderCetak(){
+  const c = CACHE.cetak || {};
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel" style="max-width:720px">
+      <h3 style="margin-top:0">Format Kertas & Kop Surat</h3>
+      <div class="form-grid">
+        <div class="form-field"><label>Ukuran Kertas</label><select id="ct_ukuran">
+          ${["A4","F4","Letter"].map(u=>`<option ${c.ukuran_kertas===u?"selected":""}>${u}</option>`).join("")}
+        </select></div>
+        <div class="form-field"><label>Orientasi</label><select id="ct_orientasi">
+          ${["Portrait","Landscape"].map(o=>`<option ${c.orientasi===o?"selected":""}>${o}</option>`).join("")}
+        </select></div>
+        <div class="form-field"><label>Margin (mm)</label><input type="number" id="ct_margin" value="${c.margin_mm!=null?c.margin_mm:20}" min="5" max="50"></div>
+        <div class="form-field"><label>Prefix Nomor Surat</label><input id="ct_prefix" value="${esc(c.nomor_surat_prefix)}" placeholder="cth: 421/SMPN3-WP"></div>
+        <div class="form-field full">
+          <label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_kop" ${c.tampilkan_kop!==false?"checked":""}> Tampilkan Kop Surat (logo, nama & alamat sekolah) di kepala dokumen</label>
+        </div>
+        <div class="form-field full">
+          <label>Gambar Kop Surat (opsional)</label>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+            <div id="kopPreviewWrap" style="width:100%;max-width:280px;height:60px;border-radius:10px;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--surface-2);flex-shrink:0">
+              ${c.kop_surat_url ? `<img src="${esc(c.kop_surat_url)}" style="width:100%;height:100%;object-fit:contain">` : `<span class="msr" style="font-size:22px;color:var(--ink-soft)">image</span>`}
+            </div>
+            <div>
+              <input type="file" id="kopFileInput" accept="image/*" style="display:none">
+              <button type="button" class="btn btn-ghost btn-sm" id="kopUploadBtn"><span class="msr">upload</span> ${c.kop_surat_url ? "Ganti Gambar" : "Upload Gambar"}</button>
+              ${c.kop_surat_url ? `<button type="button" class="btn btn-ghost btn-sm" id="kopRemoveBtn"><span class="msr">delete</span> Hapus</button>` : ""}
+            </div>
+          </div>
+          <div class="text-soft" style="font-size:11.5px;margin-top:6px">Jika diisi, gambar ini (misalnya scan kop surat resmi/lambang instansi) akan menggantikan kop surat teks di dokumen cetak. Format PNG/JPG, maksimal 2MB, disarankan rasio memanjang (banner).</div>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0">
+      <h3 style="margin-top:0">Footer & Penomoran</h3>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_footer" ${c.tampilkan_footer!==false?"checked":""}> Tampilkan teks footer</label>
+        </div>
+        <div class="form-field full"><label>Teks Footer</label><input id="ct_footerteks" value="${esc(c.teks_footer)}" placeholder="cth: Dokumen resmi SMP Negeri 3 Way Pengubun"></div>
+        <div class="form-field full">
+          <label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_nohal" ${c.tampilkan_nomor_halaman!==false?"checked":""}> Tampilkan nomor halaman ("Halaman X dari Y")</label>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0">
+      <h3 style="margin-top:0">Tanda Tangan Pengesahan</h3>
+      <div class="form-grid">
+        <div class="form-field full">
+          <label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_ttdks" ${c.ttd_kepala_sekolah!==false?"checked":""}> Tampilkan TTD Kepala Sekolah</label>
+        </div>
+        <div class="form-field"><label>Nama Kepala Sekolah</label><input id="ct_namaks" value="${esc(c.nama_kepala_sekolah)}"></div>
+        <div class="form-field"><label>NIP Kepala Sekolah</label><input id="ct_nipks" value="${esc(c.nip_kepala_sekolah)}"></div>
+        <div class="form-field"><label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_ttdbk" ${c.ttd_guru_bk!==false?"checked":""}> Tampilkan TTD Guru BK</label></div>
+        <div class="form-field"><label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_ttdwali" ${c.ttd_wali_kelas!==false?"checked":""}> Tampilkan TTD Wali Kelas</label></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px">
+        <button class="btn btn-primary" id="ct_save"><span class="msr">save</span> Simpan Pengaturan</button>
+        <button class="btn btn-ghost" id="ct_preview"><span class="msr">visibility</span> Lihat Contoh Cetak</button>
+      </div>
+    </div>
+  `;
+  document.getElementById("kopUploadBtn").addEventListener("click", ()=> document.getElementById("kopFileInput").click());
+  document.getElementById("kopFileInput").addEventListener("change", async (e)=>{
+    const file = e.target.files[0]; e.target.value = "";
+    if (!file) return;
+    const btn = document.getElementById("kopUploadBtn");
+    const orig = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Mengupload...';
+    try{
+      const url = await uploadImageToStorage(file, "kopsurat");
+      await adminRpc("admin_update_pengaturan_cetak", {p_payload: {kop_surat_url: url}});
+      toast("Gambar kop surat berhasil diperbarui.");
+      await logActivity("Mengubah gambar kop surat");
+      await refreshAllData();
+      renderCetak();
+    }catch(err){ toast(err.message, "error", "Gagal Upload"); btn.disabled=false; btn.innerHTML=orig; }
+  });
+  const kopRemoveBtn = document.getElementById("kopRemoveBtn");
+  if (kopRemoveBtn) kopRemoveBtn.addEventListener("click", ()=>{
+    openConfirm("Hapus gambar kop surat?", "Kop surat akan kembali memakai format teks biasa.", async ()=>{
+      try{ await adminRpc("admin_update_pengaturan_cetak", {p_payload: {kop_surat_url:null}}); toast("Gambar kop surat dihapus."); await refreshAllData(); renderCetak(); }
+      catch(err){ toast(err.message, "error"); }
+    });
+  });
+  document.getElementById("ct_save").addEventListener("click", async ()=>{
+    const payload = {
+      ukuran_kertas: document.getElementById("ct_ukuran").value,
+      orientasi: document.getElementById("ct_orientasi").value,
+      margin_mm: parseInt(document.getElementById("ct_margin").value || 20),
+      nomor_surat_prefix: document.getElementById("ct_prefix").value.trim(),
+      tampilkan_kop: document.getElementById("ct_kop").checked,
+      tampilkan_footer: document.getElementById("ct_footer").checked,
+      teks_footer: document.getElementById("ct_footerteks").value.trim(),
+      tampilkan_nomor_halaman: document.getElementById("ct_nohal").checked,
+      ttd_kepala_sekolah: document.getElementById("ct_ttdks").checked,
+      nama_kepala_sekolah: document.getElementById("ct_namaks").value.trim(),
+      nip_kepala_sekolah: document.getElementById("ct_nipks").value.trim(),
+      ttd_guru_bk: document.getElementById("ct_ttdbk").checked,
+      ttd_wali_kelas: document.getElementById("ct_ttdwali").checked,
+    };
+    try{
+      await adminRpc("admin_update_pengaturan_cetak", {p_payload: payload});
+      toast("Pengaturan cetak berhasil disimpan.");
+      await logActivity("Mengubah pengaturan cetak");
+      await refreshAllData();
+    }catch(err){ toast(err.message, "error"); }
+  });
+  document.getElementById("ct_preview").addEventListener("click", ()=>{
+    const dummySiswa = { nama:"Contoh Nama Siswa", nis:"2024099", kelas:"VII-A" };
+    const dummyRiwayat = [
+      { tanggal: new Date().toISOString().slice(0,10), jenis_pelanggaran:{nama:"Terlambat masuk sekolah", kategori:"Kedisiplinan", poin:5}, guru:{nama:"Contoh Guru"}, catatan:"Contoh catatan" }
+    ];
+    printStudentReport(dummySiswa, dummyRiwayat, 5);
+  });
+}
+
+/* =========================================================
+   LOG AKTIVITAS (Admin)
+========================================================= */
+let logState = {page:1, perPage:15, q:"", dari:"", sampai:""};
+function renderLog(){
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div class="toolbar">
+          <div class="search-box"><span class="msr">search</span><input id="logSearch" placeholder="Cari nama guru / aktivitas..." value="${esc(logState.q)}"></div>
+          <input type="date" class="sel" id="logDari" value="${logState.dari}">
+          <input type="date" class="sel" id="logSampai" value="${logState.sampai}">
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Waktu</th><th>Pengguna</th><th>Aktivitas</th></tr></thead>
+        <tbody id="logTbody"></tbody>
+      </table></div>
+      <div class="pagi" id="logPagi"></div>
+    </div>
+  `;
+  ["logSearch","logDari","logSampai"].forEach(id=>{
+    document.getElementById(id).addEventListener("input", syncLogState);
+    document.getElementById(id).addEventListener("change", syncLogState);
+  });
+  function syncLogState(){
+    logState.q = document.getElementById("logSearch").value;
+    logState.dari = document.getElementById("logDari").value;
+    logState.sampai = document.getElementById("logSampai").value;
+    logState.page = 1;
+    drawLogTable();
+  }
+  drawLogTable();
+}
+function fmtDateTime(d){ if(!d) return "-"; const dt = new Date(d); return dt.toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}); }
+function drawLogTable(){
+  let rows = CACHE.log.filter(l=>{
+    if (logState.q && !((l.nama_guru||"")+" "+(l.aktivitas||"")).toLowerCase().includes(logState.q.toLowerCase())) return false;
+    if (logState.dari && l.created_at.slice(0,10) < logState.dari) return false;
+    if (logState.sampai && l.created_at.slice(0,10) > logState.sampai) return false;
+    return true;
+  });
+  const totalPages = Math.max(1, Math.ceil(rows.length/logState.perPage));
+  logState.page = Math.min(logState.page, totalPages);
+  const pageRows = paginate(rows, logState.page, logState.perPage);
+  document.getElementById("logTbody").innerHTML = pageRows.length ? pageRows.map(l=>`
+    <tr><td class="text-soft">${fmtDateTime(l.created_at)}</td><td><b>${esc(l.nama_guru)}</b></td><td>${esc(l.aktivitas)}</td></tr>
+  `).join("") : `<tr><td colspan="3"><div class="empty-state"><span class="msr">receipt_long</span><div>Belum ada log aktivitas.</div></div></td></tr>`;
+  document.getElementById("logPagi").innerHTML = `
+    <span>Menampilkan ${pageRows.length} dari ${rows.length} log</span>
+    <div class="pagi-btns">
+      <button class="act-btn" ${logState.page<=1?"disabled":""} onclick="logState.page--;drawLogTable()"><span class="msr">chevron_left</span></button>
+      <span style="padding:0 6px">${logState.page}/${totalPages}</span>
+      <button class="act-btn" ${logState.page>=totalPages?"disabled":""} onclick="logState.page++;drawLogTable()"><span class="msr">chevron_right</span></button>
+    </div>`;
+}
+
+/* =========================================================
+   PROFIL
+========================================================= */
+function renderProfil(){
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel" style="max-width:520px">
+      <h3 style="margin-top:0">Informasi Akun</h3>
+      <div class="form-grid">
+        <div class="form-field full"><label>Nama</label><input value="${esc(CURRENT_USER.nama)}" disabled></div>
+        <div class="form-field"><label>Username</label><input value="${esc(CURRENT_USER.username)}" disabled></div>
+        <div class="form-field"><label>Jabatan</label><input value="${esc(CURRENT_USER.jabatan)}" disabled></div>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--line);margin:20px 0">
+      <h3 style="margin-top:0">Ganti Password</h3>
+      <div class="form-grid">
+        <div class="form-field full"><label>Password Baru</label><input type="password" id="pr_pass1"></div>
+        <div class="form-field full"><label>Ulangi Password Baru</label><input type="password" id="pr_pass2"></div>
+      </div>
+      <button class="btn btn-primary" id="pr_save" style="margin-top:16px"><span class="msr">lock_reset</span> Perbarui Password</button>
+    </div>
+  `;
+  document.getElementById("pr_save").addEventListener("click", async ()=>{
+    const p1 = document.getElementById("pr_pass1").value, p2 = document.getElementById("pr_pass2").value;
+    if (!p1 || p1.length<6){ toast("Password minimal 6 karakter.", "error"); return; }
+    if (p1!==p2){ toast("Konfirmasi password tidak cocok.", "error"); return; }
+    try{
+      await sb("rpc/set_own_password", {method:"POST", body: JSON.stringify({p_token: CURRENT_USER.session_token, p_password: p1})});
+      toast("Password berhasil diperbarui.");
+    }catch(err){ toast(err.message, "error"); }
+  });
+}
+
+/* =========================================================
+   MODAL / CONFIRM helpers
+========================================================= */
+function openModal(){ document.getElementById("modalOverlay").classList.add("show"); }
+function closeModal(){ document.getElementById("modalOverlay").classList.remove("show"); }
+document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+document.getElementById("modalOverlay").addEventListener("click", (e)=>{ if(e.target.id==="modalOverlay") closeModal(); });
+
+let confirmCb = null;
+function openConfirm(title, text, cb){
+  document.getElementById("confirmTitle").textContent = title;
+  document.getElementById("confirmText").textContent = text;
+  confirmCb = cb;
+  document.getElementById("confirmOverlay").classList.add("show");
+}
+document.getElementById("confirmCancelBtn").addEventListener("click", ()=> document.getElementById("confirmOverlay").classList.remove("show"));
+document.getElementById("confirmOkBtn").addEventListener("click", async ()=>{
+  document.getElementById("confirmOverlay").classList.remove("show");
+  if (confirmCb) await confirmCb();
+});
+
+function fmtDate(d){ if(!d) return "-"; const dt = new Date(d+"T00:00:00"); return dt.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}); }
+
+/* ---- Helper cetak PDF terpusat, memakai Pengaturan Cetak ---- */
+function getPageSizeMM(ukuran, orientasi){
+  const sizes = { "A4":{w:210,h:297}, "F4":{w:215,h:330}, "Letter":{w:216,h:279} };
+  const s = sizes[ukuran] || sizes.A4;
+  return orientasi === "Landscape" ? {w:s.h, h:s.w} : {w:s.w, h:s.h};
+}
+function buildNomorSurat(){
+  const c = CACHE.cetak || {};
+  if (!c.nomor_surat_prefix) return "";
+  const now = new Date();
+  return `${c.nomor_surat_prefix}/${String(now.getMonth()+1).padStart(2,"0")}/${now.getFullYear()}`;
+}
+function openPrintWindow(docTitle, subTitle, bodyHtml){
+  const c = CACHE.cetak || {};
+  const sekolah = CACHE.sekolah || {};
+  const size = getPageSizeMM(c.ukuran_kertas || "A4", c.orientasi || "Portrait");
+  const margin = c.margin_mm!=null ? c.margin_mm : 20;
+  const nomorSurat = buildNomorSurat();
+  const kopHtml = (c.tampilkan_kop!==false) ? (
+    c.kop_surat_url ? `
+    <div class="kop kop-banner">
+      <img src="${esc(c.kop_surat_url)}" class="kop-banner-img">
+      <div class="kop-banner-meta"><b>${esc(docTitle)}</b>${nomorSurat?` · Nomor: ${esc(nomorSurat)}`:""} · Dicetak: ${new Date().toLocaleDateString("id-ID")}</div>
+    </div>` : `
+    <div class="kop">
+      ${sekolah.logo_url ? `<img src="${esc(sekolah.logo_url)}" class="kop-logo">` : ""}
+      <div style="flex:1">
+        <h2>${esc(sekolah.nama_sekolah || "SMP Negeri 3 Way Pengubun")}</h2>
+        <div class="kop-sub">${esc(sekolah.alamat||"")}${sekolah.telepon?" · Telp: "+esc(sekolah.telepon):""}${sekolah.email?" · "+esc(sekolah.email):""}</div>
+      </div>
+      <div style="text-align:right">
+        <b>${esc(docTitle)}</b><br>
+        ${nomorSurat ? `Nomor: ${esc(nomorSurat)}<br>` : ""}
+        Dicetak: ${new Date().toLocaleDateString("id-ID")}
+      </div>
+    </div>`
+  ) : `<div class="kop-simple"><b>${esc(docTitle)}</b> ${nomorSurat?" · Nomor: "+esc(nomorSurat):""}</div>`;
+  const ttdBlocks = [];
+  if (c.ttd_wali_kelas!==false) ttdBlocks.push(`<div>Wali Kelas<br><br><br>____________________</div>`);
+  if (c.ttd_guru_bk!==false) ttdBlocks.push(`<div>Guru BK<br><br><br>____________________</div>`);
+  if (c.ttd_kepala_sekolah!==false) ttdBlocks.push(`<div>Kepala Sekolah<br><br><br>____________________<br>${esc(c.nama_kepala_sekolah)||""}${c.nip_kepala_sekolah?"<br>NIP. "+esc(c.nip_kepala_sekolah):""}</div>`);
+  const ttdHtml = ttdBlocks.length ? `<div class="ttd-row">${ttdBlocks.join("")}</div>` : "";
+  const footerHtml = (c.tampilkan_footer!==false && c.teks_footer) ? `<div class="print-footer-text">${esc(c.teks_footer)}</div>` : "";
+  const pageNumHtml = (c.tampilkan_nomor_halaman!==false) ? `<div class="print-pagenum"></div>` : "";
+
+  const w = window.open("", "_blank");
+  w.document.write(`
+    <html><head><title>${esc(docTitle)}</title>
+    <style>
+      @page{ size:${size.w}mm ${size.h}mm; margin:${margin}mm; }
+      *{box-sizing:border-box}
+      body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:0;padding:0;font-size:12.5px}
+      h2{margin:0;font-size:17px}
+      .kop{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:2px solid #1c66c4;padding-bottom:12px;margin-bottom:16px;font-size:12px}
+      .kop-logo{width:52px;height:52px;object-fit:contain;flex-shrink:0}
+      .kop-banner{flex-direction:column;align-items:stretch;gap:6px}
+      .kop-banner-img{width:100%;max-height:110px;object-fit:contain}
+      .kop-banner-meta{font-size:11px;color:#555;text-align:right}
+      .kop-sub{color:#555;font-size:11px;margin-top:3px}
+      .kop-simple{border-bottom:1px solid #ccc;padding-bottom:10px;margin-bottom:16px;font-size:12.5px}
+      table{width:100%;border-collapse:collapse;margin-top:12px}
+      th,td{border:1px solid #ccc;padding:7px 8px;font-size:11.5px;text-align:left}
+      th{background:#f0f4fa}
+      .sub-title{margin:0 0 10px;font-size:12.5px}
+      .ttd-row{margin-top:50px;display:flex;justify-content:space-between;font-size:12px;page-break-inside:avoid}
+      .print-footer-text{position:fixed;bottom:${Math.max(margin-8,4)}mm;left:0;right:0;text-align:center;font-size:9.5px;color:#888}
+      .print-pagenum{position:fixed;bottom:${Math.max(margin-14,2)}mm;left:0;right:0;text-align:center;font-size:9px;color:#aaa}
+      .print-pagenum:after{content:"Halaman " counter(page) " dari " counter(pages);}
+      @media print{ .no-export{display:none} }
+    </style></head><body>
+    ${kopHtml}
+    ${subTitle ? `<p class="sub-title">${subTitle}</p>` : ""}
+    ${bodyHtml}
+    ${ttdHtml}
+    ${footerHtml}
+    ${pageNumHtml}
+    </body></html>
+  `);
+  w.document.close();
+  setTimeout(()=>w.print(), 450);
+}
+
+function printStudentReport(s, riwayat, totalPoin){
+  const body = `
+    <p><b>Nama:</b> ${esc(s.nama)} &nbsp; <b>NIS:</b> ${esc(s.nis)} &nbsp; <b>Kelas:</b> ${esc(s.kelas)}</p>
+    <p><b>Total Poin Pelanggaran:</b> ${totalPoin}</p>
+    <table><thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Guru</th><th>Catatan</th></tr></thead>
+    <tbody>${riwayat.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td>${esc(r.jenis_pelanggaran?.kategori)}</td><td>${r.jenis_pelanggaran?.poin}</td><td>${esc(r.guru?.nama)}</td><td>${esc(r.catatan||"-")}</td></tr>`).join("")}</tbody></table>
+  `;
+  openPrintWindow("Laporan Rekap Pelanggaran Siswa", "", body);
+}
+
+function printLaporanRekap(rows, totalPoin){
+  const body = `
+    <p><b>Total Catatan:</b> ${rows.length} &nbsp; <b>Total Poin:</b> ${totalPoin} &nbsp; <b>Siswa Terlibat:</b> ${new Set(rows.map(r=>r.siswa_id)).size}</p>
+    <table><thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${esc(r.siswa?.nama)}</td><td>${esc(r.siswa?.kelas)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td>${r.jenis_pelanggaran?.poin||0}</td><td>${esc(r.guru?.nama)}</td></tr>`).join("") || `<tr><td colspan="6">Tidak ada data.</td></tr>`}</tbody></table>
+  `;
+  openPrintWindow("Laporan Rekap Pelanggaran Siswa", "", body);
+}
+
+/* =========================================================
+   RESPONSIVE SIDEBAR
+========================================================= */
+function checkResponsive(){
+  const isMobile = window.innerWidth <= 980;
+  document.getElementById("burgerBtn").style.display = isMobile ? "flex" : "none";
+}
+window.addEventListener("resize", checkResponsive);
+document.getElementById("burgerBtn").addEventListener("click", ()=> document.getElementById("sidebar").classList.toggle("open"));
+
+/* =========================================================
+   INIT
+========================================================= */
+(async function init(){
+  initTheme();
+  checkResponsive();
+  await loadLandingStats();
+  document.getElementById("loadingScreen").classList.add("hide");
+  if (tryRestoreSession()){
+    try{ await enterApp(); }catch(e){ console.error(e); }
+  }
+})();
+</script>
+</body>
+</html>
