@@ -500,7 +500,7 @@ async function uploadImageToStorage(file, folder){
    STATE
 ========================================================= */
 let CURRENT_USER = null; // {id,nama,jabatan,kelas_diampu,username}
-let CACHE = { siswa:[], guru:[], jenis:[], riwayat:[], sekolah:null, semester:[], log:[], cetak:{} };
+let CACHE = { siswa:[], guru:[], jenis:[], riwayat:[], sekolah:null, semester:[], log:[], cetak:{}, jenjang:[] };
 let ACTIVE_PAGE = "dashboard";
 
 /* =========================================================
@@ -770,6 +770,7 @@ function buildNav(){
     items.push({id:"sekolah", icon:"apartment", label:"Data Sekolah"});
     items.push({id:"semester", icon:"event_repeat", label:"Tahun & Semester"});
     items.push({id:"cetak", icon:"print", label:"Pengaturan Cetak"});
+    items.push({id:"jenjang", icon:"trending_up", label:"Jenjang Pembinaan"});
     items.push({id:"backup", icon:"cloud_download", label:"Backup Data"});
     items.push({id:"log", icon:"receipt_long", label:"Log Aktivitas"});
   }
@@ -787,7 +788,7 @@ function buildNav(){
 }
 
 async function refreshAllData(){
-  const [siswa, guru, jenis, riwayat, sekolahArr, semester, log, cetakArr] = await Promise.all([
+  const [siswa, guru, jenis, riwayat, sekolahArr, semester, log, cetakArr, jenjang] = await Promise.all([
     sbGet("siswa?select=*&order=nama.asc"),
     sbGet("guru?select=id,nama,nip,username,jabatan,kelas_diampu,aktif&order=nama.asc"),
     sbGet("jenis_pelanggaran?select=*&order=kategori.asc"),
@@ -795,7 +796,8 @@ async function refreshAllData(){
     sbGet("sekolah?select=*&limit=1"),
     sbGet("semester?select=*&order=tahun_pelajaran.desc,semester.asc"),
     sbGet("log_aktivitas?select=*&order=created_at.desc&limit=500"),
-    sbGet("pengaturan_cetak?select=*&limit=1")
+    sbGet("pengaturan_cetak?select=*&limit=1"),
+    sbGet("jenjang_pembinaan?select=*&order=urutan.asc")
   ]);
   CACHE.siswa = siswa || [];
   CACHE.guru = guru || [];
@@ -805,7 +807,14 @@ async function refreshAllData(){
   CACHE.semester = semester || [];
   CACHE.log = log || [];
   CACHE.cetak = (cetakArr && cetakArr[0]) || {};
+  CACHE.jenjang = jenjang || [];
   applyBranding();
+}
+
+/* Cari jenjang pembinaan yang sesuai dengan total poin siswa */
+function getJenjangForPoin(poin){
+  const list = CACHE.jenjang || [];
+  return list.find(j => poin >= j.poin_min && poin <= j.poin_max) || (poin > 0 && list.length ? list[list.length-1] : null);
 }
 
 document.getElementById("refreshBtn").addEventListener("click", async ()=>{
@@ -840,6 +849,7 @@ const PAGE_META = {
   sekolah:{title:"Data Sekolah", sub:"Identitas & pengaturan sekolah"},
   semester:{title:"Tahun & Semester", sub:"Kelola tahun pelajaran dan semester aktif"},
   cetak:{title:"Pengaturan Cetak", sub:"Kop surat, tanda tangan, dan format PDF"},
+  jenjang:{title:"Jenjang Pembinaan", sub:"Kriteria tingkat pembinaan berdasarkan total poin"},
   backup:{title:"Backup Data", sub:"Unduh seluruh data sistem ke Excel"},
   log:{title:"Log Aktivitas", sub:"Riwayat aktivitas seluruh pengguna sistem"},
   profil:{title:"Profil Saya", sub:"Kelola informasi akun anda"},
@@ -850,7 +860,7 @@ function navigateTo(page){
   document.querySelectorAll(".nav-item[data-page]").forEach(b=> b.classList.toggle("active", b.dataset.page===page));
   document.getElementById("pageTitle").textContent = PAGE_META[page].title;
   document.getElementById("pageSub").textContent = PAGE_META[page].sub;
-  const map = { dashboard: renderDashboard, siswa: renderSiswa, jenis: renderJenis, guru: renderGuru, input: renderInput, riwayat: renderRiwayat, laporan: renderLaporan, sekolah: renderSekolah, semester: renderSemester, cetak: renderCetak, backup: renderBackup, log: renderLog, profil: renderProfil };
+  const map = { dashboard: renderDashboard, siswa: renderSiswa, jenis: renderJenis, guru: renderGuru, input: renderInput, riwayat: renderRiwayat, laporan: renderLaporan, sekolah: renderSekolah, semester: renderSemester, cetak: renderCetak, jenjang: renderJenjang, backup: renderBackup, log: renderLog, profil: renderProfil };
   (map[page] || renderDashboard)();
   document.getElementById("sidebar").classList.remove("open");
 }
@@ -984,7 +994,7 @@ function renderSiswa(){
         </div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Orang Tua</th><th>No. HP</th><th></th></tr></thead>
+        <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Orang Tua</th><th>No. HP</th><th>Jenjang</th><th></th></tr></thead>
         <tbody id="siswaTbody"></tbody>
       </table></div>
       <div class="pagi" id="siswaPagi"></div>
@@ -1008,16 +1018,21 @@ function drawSiswaTable(){
   siswaState.page = Math.min(siswaState.page, totalPages);
   const pageRows = paginate(rows, siswaState.page, siswaState.perPage);
   const tbody = document.getElementById("siswaTbody");
-  tbody.innerHTML = pageRows.length ? pageRows.map(s=>`
+  tbody.innerHTML = pageRows.length ? pageRows.map(s=>{
+    const totalPoin = CACHE.riwayat.filter(r=>r.siswa_id===s.id).reduce((a,r)=>a+(r.jenis_pelanggaran?.poin||0),0);
+    const jenjang = getJenjangForPoin(totalPoin);
+    return `
     <tr>
       <td>${esc(s.nis)}</td><td><b>${esc(s.nama)}</b></td><td><span class="badge blue">${esc(s.kelas)}</span></td>
       <td>${esc(s.jenis_kelamin||"-")}</td><td>${esc(s.nama_ortu||"-")}</td><td>${esc(s.hp_ortu||"-")}</td>
+      <td>${jenjang ? `<span class="badge red" title="${esc(jenjang.pembinaan)}">Tingkat ${esc(jenjang.tingkat)}</span>` : `<span class="badge gray">-</span>`}</td>
       <td>
         <button class="act-btn" title="Detail" onclick="openSiswaDetail(${s.id})"><span class="msr">visibility</span></button>
         <button class="act-btn" title="Edit" onclick="openSiswaModal(${s.id})"><span class="msr">edit</span></button>
         <button class="act-btn danger" title="Hapus" onclick="confirmDeleteSiswa(${s.id})"><span class="msr">delete</span></button>
       </td>
-    </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state"><span class="msr">group_off</span><div>Tidak ada data siswa.</div></div></td></tr>`;
+    </tr>`;
+  }).join("") : `<tr><td colspan="8"><div class="empty-state"><span class="msr">group_off</span><div>Tidak ada data siswa.</div></div></td></tr>`;
   document.getElementById("siswaPagi").innerHTML = `
     <span>Menampilkan ${pageRows.length} dari ${rows.length} siswa</span>
     <div class="pagi-btns">
@@ -1071,6 +1086,7 @@ function openSiswaDetail(id){
   const s = CACHE.siswa.find(x=>x.id===id);
   const riwayat = CACHE.riwayat.filter(r=>r.siswa_id===id);
   const totalPoin = riwayat.reduce((a,r)=>a+(r.jenis_pelanggaran?r.jenis_pelanggaran.poin:0),0);
+  const jenjang = getJenjangForPoin(totalPoin);
   document.getElementById("modalTitle").textContent = "Rekap Siswa: " + s.nama;
   document.getElementById("modalBody").innerHTML = `
     <div style="display:flex;gap:14px;margin-bottom:16px;align-items:center">
@@ -1078,15 +1094,44 @@ function openSiswaDetail(id){
       <div><b style="font-size:15px">${esc(s.nama)}</b><div class="text-soft" style="font-size:12.5px">NIS ${esc(s.nis)} · Kelas ${esc(s.kelas)}</div></div>
       <div style="margin-left:auto;text-align:right"><div style="font-family:'Sora';font-size:22px;font-weight:800;color:var(--blue-600)">${totalPoin}</div><div class="text-soft" style="font-size:11px">Total Poin</div></div>
     </div>
+    ${jenjang ? `
+    <div class="point-preview" style="align-items:flex-start;flex-direction:column;gap:6px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span class="msr">trending_up</span> <b>Jenjang Pembinaan: Tingkat ${esc(jenjang.tingkat)}</b> <span class="badge blue">${totalPoin} poin</span></div>
+      <div style="font-size:12px;color:var(--ink)"><b>Program Bimbingan:</b> ${esc(jenjang.program_bimbingan)}</div>
+      <div style="font-size:12px;color:var(--ink)"><b>Pembinaan:</b> ${esc(jenjang.pembinaan)}</div>
+    </div>` : `<div class="point-preview" style="margin-bottom:16px;color:var(--ink-soft)"><span class="msr">check_circle</span> Belum ada poin pelanggaran tercatat.</div>`}
     <div class="table-wrap"><table>
-      <thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th></tr></thead>
-      <tbody>${riwayat.length? riwayat.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td><span class="badge red">${r.jenis_pelanggaran?.poin}</span></td><td>${esc(r.guru?.nama)}</td></tr>`).join("") : `<tr><td colspan="4" class="text-soft">Belum ada catatan pelanggaran.</td></tr>`}</tbody>
+      <thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th><th>Status</th></tr></thead>
+      <tbody>${riwayat.length? riwayat.map(r=>`<tr>
+        <td>${fmtDate(r.tanggal)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td><span class="badge red">${r.jenis_pelanggaran?.poin}</span></td><td>${esc(r.guru?.nama)}</td>
+        <td><button class="badge ${r.status_pembinaan==='Sudah Ditindaklanjuti'?'green':'gray'}" style="border:none;cursor:pointer" onclick="toggleStatusTindakan(${r.id})" title="Klik untuk ubah status">${r.status_pembinaan==='Sudah Ditindaklanjuti'?'✓ Sudah':'Belum'}</button></td>
+      </tr>`).join("") : `<tr><td colspan="5" class="text-soft">Belum ada catatan pelanggaran.</td></tr>`}</tbody>
     </table></div>
   `;
-  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mClose2">Tutup</button><button class="btn btn-primary" id="mPrint2"><span class="msr">print</span> Cetak PDF</button>`;
+  document.getElementById("modalFoot").innerHTML = `
+    <button class="btn btn-ghost" id="mClose2">Tutup</button>
+    ${jenjang ? `<button class="btn btn-ghost" id="mSurat2"><span class="msr">mail</span> Surat Peringatan</button>` : ""}
+    <button class="btn btn-primary" id="mPrint2"><span class="msr">print</span> Cetak PDF</button>`;
   document.getElementById("mClose2").onclick = closeModal;
   document.getElementById("mPrint2").onclick = ()=> printStudentReport(s, riwayat, totalPoin);
+  const suratBtn = document.getElementById("mSurat2");
+  if (suratBtn) suratBtn.onclick = ()=> printSuratPeringatan(s, riwayat, totalPoin, jenjang);
   openModal();
+}
+async function toggleStatusTindakan(riwayatId){
+  const r = CACHE.riwayat.find(x=>x.id===riwayatId);
+  if (!r) return;
+  const next = r.status_pembinaan === "Sudah Ditindaklanjuti" ? "Belum Ditindaklanjuti" : "Sudah Ditindaklanjuti";
+  try{
+    await sbPatch(`riwayat_pelanggaran?id=eq.${riwayatId}`, {status_pembinaan: next});
+    r.status_pembinaan = next;
+    toast(`Status ditandai: ${next}`);
+    // re-render tampilan yang sedang terbuka agar tombol status ikut update
+    if (document.getElementById("modalOverlay").classList.contains("show") && document.getElementById("modalTitle").textContent.startsWith("Rekap Siswa")){
+      openSiswaDetail(r.siswa_id);
+    }
+    if (ACTIVE_PAGE === "riwayat") drawRiwayatTable();
+  }catch(err){ toast(err.message, "error"); }
 }
 function confirmDeleteSiswa(id){
   const s = CACHE.siswa.find(x=>x.id===id);
@@ -1230,7 +1275,13 @@ function renderJenis(){
     <div class="panel">
       <div class="panel-head">
         <h3 class="mb-0">Master Jenis Pelanggaran</h3>
-        <button class="btn btn-primary btn-sm" id="addJenisBtn"><span class="msr">add</span> Tambah Jenis</button>
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="templateJenisBtn"><span class="msr">description</span> Unduh Template</button>
+          <button class="btn btn-ghost btn-sm" id="importJenisBtn"><span class="msr">upload_file</span> Import Excel</button>
+          <button class="btn btn-ghost btn-sm" id="exportJenisBtn"><span class="msr">download</span> Export Excel</button>
+          <button class="btn btn-primary btn-sm" id="addJenisBtn"><span class="msr">add</span> Tambah Jenis</button>
+          <input type="file" id="importJenisInput" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Kode</th><th>Nama Pelanggaran</th><th>Kategori</th><th>Poin</th><th>Keterangan</th><th></th></tr></thead>
@@ -1246,6 +1297,10 @@ function renderJenis(){
     </div>
   `;
   document.getElementById("addJenisBtn").addEventListener("click", ()=>openJenisModal());
+  document.getElementById("templateJenisBtn").addEventListener("click", downloadTemplateJenis);
+  document.getElementById("exportJenisBtn").addEventListener("click", exportJenisExcel);
+  document.getElementById("importJenisBtn").addEventListener("click", ()=>document.getElementById("importJenisInput").click());
+  document.getElementById("importJenisInput").addEventListener("change", handleImportJenisFile);
 }
 function openJenisModal(id=null){
   const j = id ? CACHE.jenis.find(x=>x.id===id) : {};
@@ -1280,6 +1335,112 @@ function confirmDeleteJenis(id){
     try{ await adminRpc("admin_jenis_delete", {p_id:id}); toast("Jenis pelanggaran dihapus."); await refreshAllData(); renderJenis(); }
     catch(err){ toast(err.message, "error"); }
   });
+}
+
+/* =========================================================
+   IMPORT / EXPORT EXCEL - MASTER JENIS PELANGGARAN
+========================================================= */
+const JENIS_EXCEL_COLUMNS = ["Kode","Nama Pelanggaran","Kategori","Poin","Keterangan"];
+const JENIS_KATEGORI_VALID = ["Kedisiplinan","Seragam","Kehadiran","Etika","Kebersihan","Akademik"];
+
+function exportJenisExcel(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const rows = CACHE.jenis.map(j=>({"Kode":j.kode||"", "Nama Pelanggaran":j.nama||"", "Kategori":j.kategori||"", "Poin":j.poin ?? 0, "Keterangan":j.keterangan||""}));
+  const ws = XLSX.utils.json_to_sheet(rows, {header: JENIS_EXCEL_COLUMNS});
+  ws["!cols"] = JENIS_EXCEL_COLUMNS.map(c=>({wch: Math.max(16, c.length)}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Jenis Pelanggaran");
+  XLSX.writeFile(wb, `Data_Pelanggaran_Master_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast(`${rows.length} jenis pelanggaran berhasil diexport ke Excel.`);
+}
+
+function downloadTemplateJenis(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const contoh = [{"Kode":"P011","Nama Pelanggaran":"Contoh: Tidak membawa buku pelajaran","Kategori":"Akademik","Poin":5,"Keterangan":"Contoh keterangan"}];
+  const ws = XLSX.utils.json_to_sheet(contoh, {header: JENIS_EXCEL_COLUMNS});
+  ws["!cols"] = JENIS_EXCEL_COLUMNS.map(c=>({wch: Math.max(18, c.length)}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template Jenis Pelanggaran");
+  XLSX.writeFile(wb, "Template_Import_Data_Pelanggaran.xlsx");
+  toast(`Template diunduh. Kategori yang valid: ${JENIS_KATEGORI_VALID.join(", ")}.`);
+}
+
+async function handleImportJenisFile(e){
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:"array"});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+      if (!rawRows.length){ toast("File Excel kosong atau format kolom tidak dikenali.", "error"); return; }
+      openImportJenisPreview(rawRows);
+    }catch(err){ toast("Gagal membaca file: " + err.message, "error"); }
+  };
+  reader.onerror = ()=> toast("Gagal membaca file Excel.", "error");
+  reader.readAsArrayBuffer(file);
+}
+
+function normalizeJenisRow(row){
+  const kategoriRaw = String(findColValue(row,"Kategori")).trim();
+  const kategoriMatch = JENIS_KATEGORI_VALID.find(k=>k.toLowerCase()===kategoriRaw.toLowerCase()) || kategoriRaw;
+  return {
+    kode: String(findColValue(row,"Kode")).trim(),
+    nama: String(findColValue(row,"NamaPelanggaran","Nama")).trim(),
+    kategori: kategoriMatch,
+    poin: parseInt(findColValue(row,"Poin")) || 0,
+    keterangan: String(findColValue(row,"Keterangan")).trim(),
+  };
+}
+
+function openImportJenisPreview(rawRows){
+  const jenisByKode = {}; CACHE.jenis.forEach(j=> jenisByKode[String(j.kode).trim().toUpperCase()] = j);
+  const mapped = rawRows.map(normalizeJenisRow).map(r=>({
+    ...r,
+    isUpdate: !!jenisByKode[r.kode.toUpperCase()],
+    valid: !!(r.kode && r.nama && r.kategori)
+  }));
+  const valid = mapped.filter(r=>r.valid);
+  const invalidCount = mapped.length - valid.length;
+
+  document.getElementById("modalTitle").textContent = "Preview Import Data Pelanggaran";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="point-preview" style="margin-bottom:14px;flex-wrap:wrap">
+      <span class="msr">description</span> ${valid.length} baris siap diimport
+      ${invalidCount>0 ? `<span style="color:var(--danger);font-weight:700;margin-left:6px">· ${invalidCount} baris dilewati (Kode/Nama/Kategori kosong)</span>` : ""}
+    </div>
+    <div class="table-wrap" style="max-height:320px;overflow-y:auto"><table>
+      <thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Poin</th><th>Aksi</th></tr></thead>
+      <tbody>${valid.slice(0,80).map(r=>`<tr><td>${esc(r.kode)}</td><td>${esc(r.nama)}</td><td>${esc(r.kategori)}</td><td>${r.poin}</td><td>${r.isUpdate?`<span class="badge blue">Update</span>`:`<span class="badge green">Baru</span>`}</td></tr>`).join("") || `<tr><td colspan="5" class="text-soft">Tidak ada baris valid untuk diimport.</td></tr>`}</tbody>
+    </table></div>
+    ${valid.length>80 ? `<p class="text-soft" style="font-size:12px;margin-top:8px">Menampilkan 80 dari ${valid.length} baris valid.</p>` : ""}
+    <p class="text-soft" style="font-size:12px;margin-top:10px">Kode yang sudah ada akan diperbarui datanya (poin/nama/kategori/keterangan), kode baru akan ditambahkan.</p>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mImport" ${valid.length===0?"disabled":""}><span class="msr">upload</span> Import ${valid.length} Jenis</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mImport").onclick = async ()=>{
+    const btn = document.getElementById("mImport");
+    btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Mengimport...';
+    try{
+      let ok = 0;
+      for (const r of valid){
+        const existing = jenisByKode[r.kode.toUpperCase()];
+        await adminRpc("admin_jenis_upsert", {p_id: existing ? existing.id : null, p_kode:r.kode, p_nama:r.nama, p_kategori:r.kategori, p_poin:r.poin, p_keterangan:r.keterangan});
+        ok++;
+      }
+      toast(`${ok} jenis pelanggaran berhasil diimport.`);
+      await logActivity(`Import ${ok} data pelanggaran (master) dari Excel`);
+      closeModal(); await refreshAllData(); renderJenis();
+    }catch(err){
+      toast(err.message, "error", "Gagal Import");
+      btn.disabled = false; btn.innerHTML = `<span class="msr">upload</span> Import ${valid.length} Jenis`;
+    }
+  };
+  openModal();
 }
 
 /* =========================================================
@@ -1442,14 +1603,24 @@ function renderRiwayat(){
           <input type="date" class="sel" id="rwDari" value="${riwayatState.dari}">
           <input type="date" class="sel" id="rwSampai" value="${riwayatState.sampai}">
         </div>
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="templatePelanggaranBtn"><span class="msr">description</span> Unduh Template</button>
+          <button class="btn btn-ghost btn-sm" id="importPelanggaranBtn"><span class="msr">upload_file</span> Import Excel</button>
+          <button class="btn btn-ghost btn-sm" id="exportPelanggaranBtn"><span class="msr">download</span> Export Excel</button>
+          <input type="file" id="importPelanggaranInput" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th><th></th></tr></thead>
+        <thead><tr><th>Tanggal</th><th>Nama</th><th>Kelas</th><th>Pelanggaran</th><th>Poin</th><th>Guru</th><th>Status</th><th></th></tr></thead>
         <tbody id="rwTbody"></tbody>
       </table></div>
       <div class="pagi" id="rwPagi"></div>
     </div>
   `;
+  document.getElementById("templatePelanggaranBtn").addEventListener("click", downloadTemplatePelanggaran);
+  document.getElementById("exportPelanggaranBtn").addEventListener("click", exportPelanggaranExcel);
+  document.getElementById("importPelanggaranBtn").addEventListener("click", ()=>document.getElementById("importPelanggaranInput").click());
+  document.getElementById("importPelanggaranInput").addEventListener("change", handleImportPelanggaranFile);
   ["rwSearch","rwKelas","rwDari","rwSampai"].forEach(id=>{
     document.getElementById(id).addEventListener("input", syncRwState);
     document.getElementById(id).addEventListener("change", syncRwState);
@@ -1483,8 +1654,9 @@ function drawRiwayatTable(){
       <td>${fmtDate(r.tanggal)}</td><td><b>${esc(r.siswa?.nama)}</b></td><td>${esc(r.siswa?.kelas)}</td>
       <td>${esc(r.jenis_pelanggaran?.nama)}</td><td><span class="badge red">${r.jenis_pelanggaran?.poin||0}</span></td>
       <td class="text-soft">${esc(r.guru?.nama)}</td>
+      <td><button class="badge ${r.status_pembinaan==='Sudah Ditindaklanjuti'?'green':'gray'}" style="border:none;cursor:pointer" onclick="toggleStatusTindakan(${r.id})" title="Klik untuk ubah status">${r.status_pembinaan==='Sudah Ditindaklanjuti'?'✓ Sudah':'Belum'}</button></td>
       <td><button class="act-btn danger" title="Hapus" onclick="confirmDeleteRiwayat(${r.id})"><span class="msr">delete</span></button></td>
-    </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state"><span class="msr">event_busy</span><div>Tidak ada riwayat sesuai filter.</div></div></td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="8"><div class="empty-state"><span class="msr">event_busy</span><div>Tidak ada riwayat sesuai filter.</div></div></td></tr>`;
   document.getElementById("rwPagi").innerHTML = `
     <span>Menampilkan ${pageRows.length} dari ${rows.length} catatan</span>
     <div class="pagi-btns">
@@ -1498,6 +1670,140 @@ function confirmDeleteRiwayat(id){
     await sbDelete(`riwayat_pelanggaran?id=eq.${id}`); toast("Catatan dihapus."); await refreshAllData();
     if (ACTIVE_PAGE==="riwayat") drawRiwayatTable(); else if(ACTIVE_PAGE==="laporan") drawLaporanTable();
   });
+}
+
+/* =========================================================
+   IMPORT / EXPORT EXCEL - CATATAN / DATA PELANGGARAN SISWA
+========================================================= */
+const PELANGGARAN_EXCEL_COLUMNS = ["NIS","Nama Siswa (opsional)","Tanggal (YYYY-MM-DD)","Kode Pelanggaran","Catatan (opsional)"];
+
+function exportPelanggaranExcel(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const rows = filteredRiwayat(riwayatState).map(r=>({
+    "Tanggal": r.tanggal||"", "NIS": r.siswa?.nis||"", "Nama Siswa": r.siswa?.nama||"", "Kelas": r.siswa?.kelas||"",
+    "Kode Pelanggaran": r.jenis_pelanggaran?.kode||"", "Nama Pelanggaran": r.jenis_pelanggaran?.nama||"",
+    "Kategori": r.jenis_pelanggaran?.kategori||"", "Poin": r.jenis_pelanggaran?.poin ?? 0,
+    "Guru Penginput": r.guru?.nama||"", "Catatan": r.catatan||""
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [{wch:12},{wch:12},{wch:22},{wch:10},{wch:14},{wch:28},{wch:14},{wch:8},{wch:20},{wch:28}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data Pelanggaran");
+  XLSX.writeFile(wb, `Data_Pelanggaran_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast(`${rows.length} catatan pelanggaran berhasil diexport ke Excel.`);
+}
+
+function downloadTemplatePelanggaran(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const contohSiswa = visibleSiswa()[0];
+  const contohJenis = CACHE.jenis[0];
+  const contoh = [{
+    "NIS": contohSiswa?.nis || "2024001",
+    "Nama Siswa (opsional)": contohSiswa?.nama || "Contoh Nama Siswa",
+    "Tanggal (YYYY-MM-DD)": new Date().toISOString().slice(0,10),
+    "Kode Pelanggaran": contohJenis?.kode || "P001",
+    "Catatan (opsional)": "Contoh catatan"
+  }];
+  const ws = XLSX.utils.json_to_sheet(contoh, {header: PELANGGARAN_EXCEL_COLUMNS});
+  ws["!cols"] = PELANGGARAN_EXCEL_COLUMNS.map(c=>({wch: Math.max(16, c.length)}));
+  // Sheet referensi: daftar kode pelanggaran yang valid, biar guru tidak salah ketik
+  const wsRef = XLSX.utils.json_to_sheet(CACHE.jenis.map(j=>({"Kode":j.kode, "Nama":j.nama, "Kategori":j.kategori, "Poin":j.poin})));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template Pelanggaran");
+  XLSX.utils.book_append_sheet(wb, wsRef, "Daftar Kode Pelanggaran");
+  XLSX.writeFile(wb, "Template_Import_Data_Pelanggaran.xlsx");
+  toast("Template Excel berhasil diunduh. Cek sheet 'Daftar Kode Pelanggaran' untuk kode yang valid.");
+}
+
+async function handleImportPelanggaranFile(e){
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:"array", cellDates:true});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+      if (!rawRows.length){ toast("File Excel kosong atau format kolom tidak dikenali.", "error"); return; }
+      openImportPelanggaranPreview(rawRows);
+    }catch(err){ toast("Gagal membaca file: " + err.message, "error"); }
+  };
+  reader.onerror = ()=> toast("Gagal membaca file Excel.", "error");
+  reader.readAsArrayBuffer(file);
+}
+
+function normalizePelanggaranRow(row){
+  return {
+    nis: String(findColValue(row,"NIS")).trim(),
+    tanggal: excelValueToISODate(findColValue(row,"Tanggal","TanggalYYYYMMDD")) || new Date().toISOString().slice(0,10),
+    kode: String(findColValue(row,"KodePelanggaran","Kode")).trim(),
+    catatan: String(findColValue(row,"Catatan","CatatanOpsional")).trim(),
+  };
+}
+
+function openImportPelanggaranPreview(rawRows){
+  const siswaByNis = {}; visibleSiswa().forEach(s=> siswaByNis[String(s.nis).trim()] = s);
+  const jenisByKode = {}; CACHE.jenis.forEach(j=> jenisByKode[String(j.kode).trim().toUpperCase()] = j);
+
+  const mapped = rawRows.map(normalizePelanggaranRow).map(r=>{
+    const siswa = siswaByNis[r.nis];
+    const jenis = jenisByKode[r.kode.toUpperCase()];
+    return Object.assign({}, r, {
+      siswa, jenis,
+      valid: !!(siswa && jenis && r.tanggal),
+      error: !siswa ? "NIS tidak ditemukan" : !jenis ? "Kode pelanggaran tidak dikenal" : !r.tanggal ? "Tanggal tidak valid" : ""
+    });
+  });
+  const valid = mapped.filter(r=>r.valid);
+  const invalid = mapped.filter(r=>!r.valid);
+
+  document.getElementById("modalTitle").textContent = "Preview Import Data Pelanggaran";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="point-preview" style="margin-bottom:14px;flex-wrap:wrap">
+      <span class="msr">description</span> ${valid.length} baris siap diimport
+      ${invalid.length>0 ? `<span style="color:var(--danger);font-weight:700;margin-left:6px">· ${invalid.length} baris bermasalah</span>` : ""}
+    </div>
+    <div class="table-wrap" style="max-height:320px;overflow-y:auto"><table>
+      <thead><tr><th>Tanggal</th><th>NIS</th><th>Nama Siswa</th><th>Pelanggaran</th><th>Poin</th><th>Status</th></tr></thead>
+      <tbody>
+        ${mapped.slice(0,100).map(r=>`<tr>
+          <td>${esc(r.tanggal)}</td><td>${esc(r.nis)}</td><td>${esc(r.siswa?.nama || "-")}</td>
+          <td>${esc(r.jenis?.nama || r.kode)}</td><td>${r.jenis?.poin ?? "-"}</td>
+          <td>${r.valid ? `<span class="badge green">Valid</span>` : `<span class="badge red" title="${esc(r.error)}">${esc(r.error)}</span>`}</td>
+        </tr>`).join("")}
+      </tbody>
+    </table></div>
+    ${mapped.length>100 ? `<p class="text-soft" style="font-size:12px;margin-top:8px">Menampilkan 100 dari ${mapped.length} baris.</p>` : ""}
+    <p class="text-soft" style="font-size:12px;margin-top:10px">Baris bermasalah (NIS/Kode tidak dikenal) akan dilewati otomatis dan tidak masuk ke database.</p>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mImport" ${valid.length===0?"disabled":""}><span class="msr">upload</span> Import ${valid.length} Catatan</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mImport").onclick = async ()=>{
+    const btn = document.getElementById("mImport");
+    btn.disabled = true; btn.innerHTML = '<span class="spin-mini"></span> Mengimport...';
+    try{
+      const payload = valid.map(r=>({
+        siswa_id: r.siswa.id,
+        jenis_pelanggaran_id: r.jenis.id,
+        tanggal: r.tanggal,
+        catatan: r.catatan,
+        guru_id: CURRENT_USER.id
+      }));
+      await sbPost("riwayat_pelanggaran", payload);
+      toast(`${valid.length} catatan pelanggaran berhasil diimport.`);
+      await logActivity(`Import ${valid.length} data pelanggaran dari Excel`);
+      closeModal();
+      await refreshAllData();
+      if (ACTIVE_PAGE === "riwayat") drawRiwayatTable();
+    }catch(err){
+      toast(err.message, "error", "Gagal Import");
+      btn.disabled = false; btn.innerHTML = `<span class="msr">upload</span> Import ${valid.length} Catatan`;
+    }
+  };
+  openModal();
 }
 
 /* =========================================================
@@ -1525,7 +1831,17 @@ function renderLaporan(){
       </table></div>
     </div>
   `;
-  ["lpKelas","lpSiswa","lpDari","lpSampai"].forEach(id=>{
+  function refreshLpSiswaOptions(preserveVal){
+    const kelas = document.getElementById("lpKelas").value;
+    const filtered = kelas ? siswaList.filter(s=>s.kelas===kelas) : siswaList;
+    const sel = document.getElementById("lpSiswa");
+    const wantVal = preserveVal !== undefined ? preserveVal : sel.value;
+    sel.innerHTML = `<option value="">Semua Siswa</option>` + filtered.map(s=>`<option value="${s.id}">${esc(s.nama)}</option>`).join("");
+    if (filtered.some(s=>String(s.id)===String(wantVal))){ sel.value = wantVal; }
+    else { sel.value = ""; laporanState.siswa = ""; }
+  }
+  document.getElementById("lpKelas").addEventListener("change", ()=>{ refreshLpSiswaOptions(); syncLp(); });
+  ["lpSiswa","lpDari","lpSampai"].forEach(id=>{
     document.getElementById(id).addEventListener("change", syncLp);
   });
   function syncLp(){
@@ -1535,6 +1851,7 @@ function renderLaporan(){
     laporanState.sampai = document.getElementById("lpSampai").value;
     drawLaporanTable();
   }
+  refreshLpSiswaOptions(laporanState.siswa);
   document.getElementById("lpPrintBtn").addEventListener("click", ()=>{
     const rows = filteredLaporanRows();
     const totalPoin = rows.reduce((a,r)=>a+(r.jenis_pelanggaran?.poin||0),0);
@@ -1815,6 +2132,75 @@ function renderCetak(){
       { tanggal: new Date().toISOString().slice(0,10), jenis_pelanggaran:{nama:"Terlambat masuk sekolah", kategori:"Kedisiplinan", poin:5}, guru:{nama:"Contoh Guru"}, catatan:"Contoh catatan" }
     ];
     printStudentReport(dummySiswa, dummyRiwayat, 5);
+  });
+}
+
+/* =========================================================
+   JENJANG PEMBINAAN (Admin) - kriteria tingkat berdasarkan poin
+========================================================= */
+function renderJenjang(){
+  document.getElementById("pageContent").innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <h3 class="mb-0">Jenjang Pembinaan Peserta Didik</h3>
+        <button class="btn btn-primary btn-sm" id="addJenjangBtn"><span class="msr">add</span> Tambah Jenjang</button>
+      </div>
+      <p class="text-soft" style="font-size:12.5px;margin-top:-6px">Tingkat pembinaan siswa dihitung otomatis berdasarkan total poin pelanggaran yang terkumpul, mengikuti kriteria di bawah ini.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tingkat</th><th>Rentang Poin</th><th>Program Bimbingan</th><th>Pembinaan</th><th></th></tr></thead>
+        <tbody>
+        ${CACHE.jenjang.map(j=>`<tr>
+          <td><span class="badge blue">Tingkat ${esc(j.tingkat)}</span></td>
+          <td>${j.poin_min} - ${j.poin_max}</td>
+          <td>${esc(j.program_bimbingan)}</td>
+          <td class="text-soft">${esc(j.pembinaan)}</td>
+          <td><button class="act-btn" onclick="openJenjangModal(${j.id})"><span class="msr">edit</span></button>
+              <button class="act-btn danger" onclick="confirmDeleteJenjang(${j.id})"><span class="msr">delete</span></button></td>
+        </tr>`).join("") || `<tr><td colspan="5"><div class="empty-state"><span class="msr">trending_up</span><div>Belum ada data jenjang pembinaan.</div></div></td></tr>`}
+        </tbody>
+      </table></div>
+    </div>
+  `;
+  document.getElementById("addJenjangBtn").addEventListener("click", ()=>openJenjangModal());
+}
+function openJenjangModal(id=null){
+  const j = id ? CACHE.jenjang.find(x=>x.id===id) : {};
+  document.getElementById("modalTitle").textContent = id ? "Edit Jenjang Pembinaan" : "Tambah Jenjang Pembinaan";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="form-grid">
+      <div class="form-field"><label>Tingkat (mis. I, II, III...)</label><input id="f_tingkat" value="${esc(j.tingkat)}"></div>
+      <div class="form-field"><label>Urutan</label><input type="number" id="f_urutan" value="${j.urutan ?? (CACHE.jenjang.length+1)}"></div>
+      <div class="form-field"><label>Poin Minimal</label><input type="number" id="f_poinmin" value="${j.poin_min ?? 0}"></div>
+      <div class="form-field"><label>Poin Maksimal</label><input type="number" id="f_poinmax" value="${j.poin_max ?? 0}"></div>
+      <div class="form-field full"><label>Program Bimbingan</label><input id="f_program" value="${esc(j.program_bimbingan)}"></div>
+      <div class="form-field full"><label>Pembinaan (pihak yang menangani)</label><textarea id="f_pembinaan" rows="2">${esc(j.pembinaan)}</textarea></div>
+    </div>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mSave"><span class="msr">save</span> Simpan</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mSave").onclick = async ()=>{
+    const payload = {
+      p_tingkat: document.getElementById("f_tingkat").value.trim(),
+      p_urutan: parseInt(document.getElementById("f_urutan").value||0),
+      p_poin_min: parseInt(document.getElementById("f_poinmin").value||0),
+      p_poin_max: parseInt(document.getElementById("f_poinmax").value||0),
+      p_program: document.getElementById("f_program").value.trim(),
+      p_pembinaan: document.getElementById("f_pembinaan").value.trim(),
+    };
+    if (!payload.p_tingkat){ toast("Tingkat wajib diisi.", "error"); return; }
+    try{
+      await adminRpc("admin_jenjang_upsert", Object.assign({p_id:id}, payload));
+      toast(id ? "Jenjang pembinaan diperbarui." : "Jenjang pembinaan ditambahkan.");
+      closeModal(); await refreshAllData(); renderJenjang();
+    }catch(err){ toast(err.message, "error", "Gagal Menyimpan"); }
+  };
+  openModal();
+}
+function confirmDeleteJenjang(id){
+  const j = CACHE.jenjang.find(x=>x.id===id);
+  openConfirm(`Hapus Tingkat ${j.tingkat}?`, "Tindakan ini tidak dapat dibatalkan.", async ()=>{
+    try{ await adminRpc("admin_jenjang_delete", {p_id:id}); toast("Jenjang pembinaan dihapus."); await refreshAllData(); renderJenjang(); }
+    catch(err){ toast(err.message, "error"); }
   });
 }
 
@@ -2137,6 +2523,32 @@ function printLaporanRekap(rows, totalPoin){
     <tbody>${rows.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${esc(r.siswa?.nama)}</td><td>${esc(r.siswa?.kelas)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td>${r.jenis_pelanggaran?.poin||0}</td><td>${esc(r.guru?.nama)}</td></tr>`).join("") || `<tr><td colspan="6">Tidak ada data.</td></tr>`}</tbody></table>
   `;
   openPrintWindow("Laporan Rekap Pelanggaran Siswa", "", body);
+}
+
+function printSuratPeringatan(s, riwayat, totalPoin, jenjang){
+  if (!jenjang){ toast("Siswa ini belum memiliki poin pelanggaran, surat tidak dapat dibuat.", "error"); return; }
+  const sekolah = CACHE.sekolah || {};
+  const tanggalSurat = new Date().toLocaleDateString("id-ID", {day:"numeric", month:"long", year:"numeric"});
+  const body = `
+    <p style="text-align:right;margin:0 0 18px">${esc(sekolah.alamat ? sekolah.alamat.split(",").pop().trim() : "")}, ${tanggalSurat}</p>
+    <p style="margin:0 0 4px"><b>Perihal:</b> Surat Peringatan Tingkat ${esc(jenjang.tingkat)} - Pembinaan Peserta Didik</p>
+    <p style="margin:0 0 18px"><b>Lampiran:</b> Rekap Pelanggaran</p>
+    <p style="margin:0 0 4px">Kepada Yth.</p>
+    <p style="margin:0 0 18px">Orang Tua/Wali dari <b>${esc(s.nama)}</b><br>Kelas ${esc(s.kelas)}<br>di tempat</p>
+    <p style="text-align:justify;line-height:1.7">Dengan hormat, berdasarkan catatan tata tertib sekolah, kami sampaikan bahwa ananda <b>${esc(s.nama)}</b> (NIS ${esc(s.nis)}) telah mengumpulkan total <b>${totalPoin} poin pelanggaran</b>, sehingga berdasarkan kriteria jenjang pembinaan peserta didik yang berlaku, ananda saat ini berada pada:</p>
+    <table style="margin:14px 0">
+      <tbody>
+        <tr><td style="width:38%;background:#f0f4fa"><b>Tingkat Pembinaan</b></td><td>Tingkat ${esc(jenjang.tingkat)} (${jenjang.poin_min}-${jenjang.poin_max} poin)</td></tr>
+        <tr><td style="background:#f0f4fa"><b>Program Bimbingan</b></td><td>${esc(jenjang.program_bimbingan)}</td></tr>
+        <tr><td style="background:#f0f4fa"><b>Bentuk Pembinaan</b></td><td>${esc(jenjang.pembinaan)}</td></tr>
+      </tbody>
+    </table>
+    <p style="margin:14px 0 6px"><b>Rincian catatan pelanggaran:</b></p>
+    <table><thead><tr><th>Tanggal</th><th>Pelanggaran</th><th>Kategori</th><th>Poin</th></tr></thead>
+    <tbody>${riwayat.map(r=>`<tr><td>${fmtDate(r.tanggal)}</td><td>${esc(r.jenis_pelanggaran?.nama)}</td><td>${esc(r.jenis_pelanggaran?.kategori)}</td><td>${r.jenis_pelanggaran?.poin||0}</td></tr>`).join("") || `<tr><td colspan="4">Tidak ada data.</td></tr>`}</tbody></table>
+    <p style="text-align:justify;line-height:1.7;margin-top:16px">Sehubungan dengan hal tersebut, kami mohon kerja sama Bapak/Ibu untuk turut membimbing ananda di rumah agar tidak mengulangi pelanggaran serupa. Atas perhatian dan kerja samanya, kami ucapkan terima kasih.</p>
+  `;
+  openPrintWindow(`Surat Peringatan Tingkat ${jenjang.tingkat}`, "", body);
 }
 
 /* =========================================================
