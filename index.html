@@ -1453,7 +1453,13 @@ function renderGuru(){
     <div class="panel">
       <div class="panel-head">
         <h3 class="mb-0">Akun Guru & Hak Akses</h3>
-        <button class="btn btn-primary btn-sm" id="addGuruBtn"><span class="msr">person_add</span> Tambah Guru</button>
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="templateGuruBtn"><span class="msr">description</span> Unduh Template</button>
+          <button class="btn btn-ghost btn-sm" id="importGuruBtn"><span class="msr">upload_file</span> Import Excel</button>
+          <button class="btn btn-ghost btn-sm" id="exportGuruBtn"><span class="msr">download</span> Export Excel</button>
+          <button class="btn btn-primary btn-sm" id="addGuruBtn"><span class="msr">person_add</span> Tambah Guru</button>
+          <input type="file" id="importGuruInput" accept=".xlsx,.xls,.csv" style="display:none">
+        </div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>Nama</th><th>NIP</th><th>Username</th><th>Jabatan</th><th>Kelas Diampu</th><th>Status</th><th></th></tr></thead>
@@ -1471,6 +1477,10 @@ function renderGuru(){
     </div>
   `;
   document.getElementById("addGuruBtn").addEventListener("click", ()=>openGuruModal());
+  document.getElementById("templateGuruBtn").addEventListener("click", downloadTemplateGuru);
+  document.getElementById("exportGuruBtn").addEventListener("click", exportGuruExcel);
+  document.getElementById("importGuruBtn").addEventListener("click", ()=>document.getElementById("importGuruInput").click());
+  document.getElementById("importGuruInput").addEventListener("change", handleImportGuruFile);
 }
 function openGuruModal(id=null){
   const g = id ? CACHE.guru.find(x=>x.id===id) : {};
@@ -1526,6 +1536,134 @@ function confirmDeleteGuru(id){
     try{ await adminRpc("admin_delete_guru", {p_id:id}); toast("Akun guru dihapus."); await refreshAllData(); renderGuru(); }
     catch(err){ toast(err.message, "error"); }
   });
+}
+
+/* =========================================================
+   IMPORT / EXPORT EXCEL - MANAJEMEN GURU
+========================================================= */
+const GURU_EXCEL_COLUMNS = ["Nama","NIP","Username","Password (kosongkan jika update)","Jabatan (Admin/Guru BK/Wali Kelas)","Kelas Diampu (khusus Wali Kelas)","Status (Aktif/Nonaktif)"];
+const GURU_JABATAN_VALID = ["Admin","Guru BK","Wali Kelas"];
+
+function exportGuruExcel(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const rows = CACHE.guru.map(g=>({
+    "Nama": g.nama||"", "NIP": g.nip||"", "Username": g.username||"",
+    "Jabatan": g.jabatan||"", "Kelas Diampu": g.kelas_diampu||"", "Status": g.aktif!==false ? "Aktif" : "Nonaktif"
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [{wch:22},{wch:20},{wch:16},{wch:14},{wch:16},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Data Guru");
+  XLSX.writeFile(wb, `Data_Guru_${new Date().toISOString().slice(0,10)}.xlsx`);
+  toast(`${rows.length} akun guru berhasil diexport ke Excel (tanpa password, demi keamanan).`);
+}
+
+function downloadTemplateGuru(){
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const contoh = [{
+    "Nama":"Contoh Nama Guru, S.Pd", "NIP":"199001012015011001", "Username":"guru_baru1",
+    "Password (kosongkan jika update)":"password123", "Jabatan (Admin/Guru BK/Wali Kelas)":"Wali Kelas",
+    "Kelas Diampu (khusus Wali Kelas)":"VII-B", "Status (Aktif/Nonaktif)":"Aktif"
+  }];
+  const ws = XLSX.utils.json_to_sheet(contoh, {header: GURU_EXCEL_COLUMNS});
+  ws["!cols"] = GURU_EXCEL_COLUMNS.map(c=>({wch: Math.max(16, Math.min(c.length,32))}));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template Guru");
+  XLSX.writeFile(wb, "Template_Import_Data_Guru.xlsx");
+  toast("Template diunduh. Kosongkan kolom Password jika hanya ingin update data guru yang sudah ada.");
+}
+
+async function handleImportGuruFile(e){
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  if (typeof XLSX === "undefined"){ toast("Modul Excel gagal dimuat. Periksa koneksi internet Anda.", "error"); return; }
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:"array"});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+      if (!rawRows.length){ toast("File Excel kosong atau format kolom tidak dikenali.", "error"); return; }
+      openImportGuruPreview(rawRows);
+    }catch(err){ toast("Gagal membaca file: " + err.message, "error"); }
+  };
+  reader.onerror = ()=> toast("Gagal membaca file Excel.", "error");
+  reader.readAsArrayBuffer(file);
+}
+
+function normalizeGuruRow(row){
+  const jabatanRaw = String(findColValue(row,"Jabatan")).trim();
+  const jabatanMatch = GURU_JABATAN_VALID.find(j=>j.toLowerCase()===jabatanRaw.toLowerCase()) || jabatanRaw;
+  const statusRaw = String(findColValue(row,"Status")).trim().toLowerCase();
+  return {
+    nama: String(findColValue(row,"Nama")).trim(),
+    nip: String(findColValue(row,"NIP")).trim(),
+    username: String(findColValue(row,"Username")).trim(),
+    password: String(findColValue(row,"Password")).trim(),
+    jabatan: jabatanMatch,
+    kelas_diampu: String(findColValue(row,"KelasDiampu","Kelas")).trim(),
+    aktif: statusRaw ? (statusRaw==="aktif") : true,
+  };
+}
+
+function openImportGuruPreview(rawRows){
+  const guruByUsername = {}; CACHE.guru.forEach(g=> guruByUsername[String(g.username).trim().toLowerCase()] = g);
+
+  const mapped = rawRows.map(normalizeGuruRow).map(r=>{
+    const existing = guruByUsername[r.username.toLowerCase()];
+    const jabatanOk = GURU_JABATAN_VALID.includes(r.jabatan);
+    const kelasOk = r.jabatan !== "Wali Kelas" || !!r.kelas_diampu;
+    let error = "";
+    if (!r.nama || !r.username) error = "Nama/Username kosong";
+    else if (!jabatanOk) error = "Jabatan tidak dikenal";
+    else if (!kelasOk) error = "Wali Kelas wajib isi Kelas Diampu";
+    else if (!existing && !r.password) error = "Password wajib untuk akun baru";
+    return Object.assign({}, r, { existing, isUpdate: !!existing, valid: !error, error });
+  });
+  const valid = mapped.filter(r=>r.valid);
+  const invalid = mapped.filter(r=>!r.valid);
+
+  document.getElementById("modalTitle").textContent = "Preview Import Data Guru";
+  document.getElementById("modalBody").innerHTML = `
+    <div class="point-preview" style="margin-bottom:14px;flex-wrap:wrap">
+      <span class="msr">description</span> ${valid.length} baris siap diimport
+      ${invalid.length>0 ? `<span style="color:var(--danger);font-weight:700;margin-left:6px">· ${invalid.length} baris bermasalah</span>` : ""}
+    </div>
+    <div class="table-wrap" style="max-height:320px;overflow-y:auto"><table>
+      <thead><tr><th>Nama</th><th>Username</th><th>Jabatan</th><th>Kelas</th><th>Status</th></tr></thead>
+      <tbody>${mapped.slice(0,100).map(r=>`<tr>
+        <td>${esc(r.nama)}</td><td>${esc(r.username)}</td><td>${esc(r.jabatan)}</td><td>${esc(r.kelas_diampu||"-")}</td>
+        <td>${r.valid ? (r.isUpdate?`<span class="badge blue">Update</span>`:`<span class="badge green">Baru</span>`) : `<span class="badge red" title="${esc(r.error)}">${esc(r.error)}</span>`}</td>
+      </tr>`).join("")}</tbody>
+    </table></div>
+    ${mapped.length>100 ? `<p class="text-soft" style="font-size:12px;margin-top:8px">Menampilkan 100 dari ${mapped.length} baris.</p>` : ""}
+    <p class="text-soft" style="font-size:12px;margin-top:10px">Username yang sudah ada akan diperbarui datanya. Password lama tidak berubah kecuali diisi ulang di kolom Password. Baris bermasalah otomatis dilewati.</p>
+  `;
+  document.getElementById("modalFoot").innerHTML = `<button class="btn btn-ghost" id="mCancel">Batal</button><button class="btn btn-primary" id="mImport" ${valid.length===0?"disabled":""}><span class="msr">upload</span> Import ${valid.length} Guru</button>`;
+  document.getElementById("mCancel").onclick = closeModal;
+  document.getElementById("mImport").onclick = async ()=>{
+    const btn = document.getElementById("mImport");
+    btn.disabled = true;
+    let ok = 0, failed = 0;
+    for (const r of valid){
+      btn.innerHTML = `<span class="spin-mini"></span> Mengimport (${ok+failed+1}/${valid.length})...`;
+      try{
+        if (r.existing){
+          await adminRpc("admin_update_guru", {p_id:r.existing.id, p_nama:r.nama, p_nip:r.nip, p_jabatan:r.jabatan, p_kelas: r.jabatan==="Wali Kelas"?r.kelas_diampu:null, p_aktif:r.aktif});
+          if (r.password){ await adminRpc("admin_reset_guru_password", {p_id:r.existing.id, p_password:r.password}); }
+        } else {
+          await adminRpc("admin_create_guru", {p_nama:r.nama, p_nip:r.nip, p_username:r.username, p_password:r.password, p_jabatan:r.jabatan, p_kelas: r.jabatan==="Wali Kelas"?r.kelas_diampu:null});
+        }
+        ok++;
+      }catch(err){ failed++; }
+    }
+    toast(failed>0 ? `${ok} guru berhasil diimport, ${failed} gagal (kemungkinan username duplikat).` : `${ok} akun guru berhasil diimport.`, failed>0?"warn":"success");
+    await logActivity(`Import ${ok} data guru dari Excel`);
+    closeModal(); await refreshAllData(); renderGuru();
+  };
+  openModal();
 }
 
 /* =========================================================
