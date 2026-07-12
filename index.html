@@ -359,7 +359,11 @@ tbody tr:hover{background:var(--surface-2)}
         </div>
         <button type="submit" class="btn btn-primary" id="loginBtn"><span class="msr">login</span> Login</button>
       </form>
-      <div style="text-align:center;font-size:10px;color:var(--ink-soft);opacity:.6;margin-top:16px">Build: 2026-07-11 05:01 UTC</div>
+      <div style="display:flex;justify-content:center;margin-top:16px">
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--blue-700);background:var(--blue-50);border:1px solid var(--line);padding:4px 12px;border-radius:20px">
+          <span class="msr" style="font-size:13px">tag</span> Build 2026-07-12 07:48 UTC
+        </span>
+      </div>
     </div>
   </div>
 </div>
@@ -378,7 +382,7 @@ tbody tr:hover{background:var(--surface-2)}
         <div class="who"><b id="sbName">–</b><span id="sbRole">–</span></div>
       </div>
       <button class="nav-item" id="logoutBtn" style="margin-top:6px"><span class="msr">logout</span> Keluar</button>
-      <div style="text-align:center;font-size:9.5px;opacity:.4;margin-top:8px">Build: 2026-07-11 05:01 UTC</div>
+      <div style="text-align:center;font-size:9.5px;opacity:.4;margin-top:8px">Build: 2026-07-12 07:48 UTC</div>
     </div>
   </aside>
 
@@ -996,7 +1000,7 @@ function renderSiswa(){
         </div>
       </div>
       <div class="table-wrap"><table>
-        <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Orang Tua</th><th>No. HP</th><th>Jenjang</th><th></th></tr></thead>
+        <thead><tr><th>NIS</th><th>Nama</th><th>Kelas</th><th>L/P</th><th>Orang Tua</th><th>No. HP</th><th>Peringatan</th><th></th></tr></thead>
         <tbody id="siswaTbody"></tbody>
       </table></div>
       <div class="pagi" id="siswaPagi"></div>
@@ -1195,7 +1199,8 @@ function findColValue(row, ...aliases){
   const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g,"");
   const target = aliases.map(norm);
   for (const key of Object.keys(row)){
-    if (target.includes(norm(key))) return row[key];
+    const nk = norm(key);
+    if (target.some(t => nk === t || nk.startsWith(t))) return row[key];
   }
   return "";
 }
@@ -2174,6 +2179,7 @@ function renderCetak(){
         </select></div>
         <div class="form-field"><label>Margin (mm)</label><input type="number" id="ct_margin" value="${c.margin_mm!=null?c.margin_mm:20}" min="5" max="50"></div>
         <div class="form-field"><label>Prefix Nomor Surat</label><input id="ct_prefix" value="${esc(c.nomor_surat_prefix)}" placeholder="cth: 421/SMPN3-WP"></div>
+        <div class="form-field"><label>Kota/Tempat Surat</label><input id="ct_kota" value="${esc(c.kota_surat)}" placeholder="cth: Lempuyang Bandar"></div>
         <div class="form-field full">
           <label class="chk" style="font-weight:600;font-size:12.5px;color:var(--ink)"><input type="checkbox" id="ct_kop" ${c.tampilkan_kop!==false?"checked":""}> Tampilkan Kop Surat (logo, nama & alamat sekolah) di kepala dokumen</label>
         </div>
@@ -2249,6 +2255,7 @@ function renderCetak(){
       orientasi: document.getElementById("ct_orientasi").value,
       margin_mm: parseInt(document.getElementById("ct_margin").value || 20),
       nomor_surat_prefix: document.getElementById("ct_prefix").value.trim(),
+      kota_surat: document.getElementById("ct_kota").value.trim(),
       tampilkan_kop: document.getElementById("ct_kop").checked,
       tampilkan_footer: document.getElementById("ct_footer").checked,
       teks_footer: document.getElementById("ct_footerteks").value.trim(),
@@ -2668,9 +2675,11 @@ function printLaporanRekap(rows, totalPoin){
 function printSuratPeringatan(s, riwayat, totalPoin, jenjang){
   if (!jenjang){ toast("Siswa ini belum memiliki poin pelanggaran, surat tidak dapat dibuat.", "error"); return; }
   const sekolah = CACHE.sekolah || {};
+  const c = CACHE.cetak || {};
   const tanggalSurat = new Date().toLocaleDateString("id-ID", {day:"numeric", month:"long", year:"numeric"});
+  const kotaSurat = c.kota_surat || (sekolah.alamat ? sekolah.alamat.split(",").pop().trim() : "");
   const body = `
-    <p style="text-align:right;margin:0 0 18px">${esc(sekolah.alamat ? sekolah.alamat.split(",").pop().trim() : "")}, ${tanggalSurat}</p>
+    <p style="text-align:right;margin:0 0 18px">${esc(kotaSurat)}, ${tanggalSurat}</p>
     <p style="margin:0 0 4px"><b>Perihal:</b> Surat Peringatan Tingkat ${esc(jenjang.tingkat)} - Pembinaan Peserta Didik</p>
     <p style="margin:0 0 18px"><b>Lampiran:</b> Rekap Pelanggaran</p>
     <p style="margin:0 0 4px">Kepada Yth.</p>
